@@ -1,0 +1,26 @@
+{
+  "installCommand": "npm install",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".",
+  "headers": [
+    {
+      "source": "/service-worker.js",
+      "headers": [
+        {"key": "Cache-Control", "value": "public, max-age=0, must-revalidate"},
+        {"key": "Service-Worker-Allowed", "value": "/"}
+      ]
+    },
+    {
+      "source": "/api/supabase-config",
+      "headers": [
+        {"key": "Cache-Control", "value": "no-store, max-age=0"}
+      ]
+    },
+    {
+      "source": "/api/invite-user",
+      "headers": [
+        {"key": "Cache-Control", "value": "no-store, max-age=0"}
+      ]
+    }
+  ]
+}

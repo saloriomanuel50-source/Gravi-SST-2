@@ -1,0 +1,278 @@
+.choice-row label {
+  position: relative;
+}
+
+.choice-row input {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+
+#extinguisherCount {
+  color: var(--teal-dark);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+input[readonly] {
+  background: #eef3f0;
+  color: var(--teal-dark);
+  font-weight: 800;
+  cursor: default;
+}
+
+.first-aid .module-icon {
+  background: #eaf2ff;
+  color: #315c9c;
+}
+
+.first-aid b {
+  color: #315c9c;
+}
+
+.inspection-types {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 790px;
+}
+
+.first-aid-card {
+  margin-top: 18px;
+}
+
+.first-aid-table-wrap {
+  overflow-x: auto;
+}
+
+.first-aid-input-table {
+  width: 100%;
+  min-width: 820px;
+  border-collapse: collapse;
+}
+
+.first-aid-input-table th {
+  padding: 10px;
+  background: var(--mint);
+  color: var(--teal-dark);
+  font-size: 12px;
+  text-align: left;
+}
+
+.first-aid-input-table td {
+  padding: 7px;
+  border-bottom: 1px solid var(--line);
+}
+
+.first-aid-input-table input,
+.first-aid-input-table select {
+  margin-top: 0;
+}
+
+.first-aid-input-table .item-name {
+  min-width: 220px;
+}
+
+.first-aid-input-table .custom-item-name {
+  min-width: 210px;
+}
+
+.custom-item-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.custom-item-cell input {
+  flex: 1;
+}
+
+.first-aid-input-table .item-quantity {
+  width: 125px;
+}
+
+.first-aid-condition-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 260px minmax(220px, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.first-aid-condition-row p {
+  margin: 0;
+  font-weight: 700;
+}
+
+.first-aid-condition-row .condition-note {
+  margin-top: 0;
+}
+
+.first-aid-meta {
+  grid-template-columns: 1fr 1fr;
+}
+
+.equipment-check-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 330px minmax(220px, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.equipment-check-row p {
+  margin: 0;
+  font-weight: 700;
+}
+
+.equipment-check-row .criterion-options {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.equipment-check-row .equipment-note {
+  margin-top: 0;
+}
+
+.ppe-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ppe-option {
+  position: relative;
+}
+
+.ppe-option input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.ppe-option span {
+  display: block;
+  min-height: 52px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fbfcfb;
+  font-size: 12px;
+}
+
+.ppe-option input:checked + span {
+  color: var(--teal-dark);
+  background: var(--mint);
+  border-color: var(--teal);
+  font-weight: 800;
+}
+
+.equipment-meta {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.report-ppe {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid #333;
+  font-size: 10px;
+}
+
+.incident b {
+  color: #b65334;
+}
+
+.incident-types {
+  margin-top: 22px;
+}
+
+.incident-choice-row {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.incident-choice-row span {
+  min-height: 62px;
+}
+
+.incident-choice-row small {
+  color: inherit;
+}
+
+.incident-text-grid,
+.incident-signatures {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.incident-signatures {
+  margin-top: 22px;
+}
+
+.incident-report-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-left: 1px solid #333;
+}
+
+.incident-report-section > div {
+  min-height: 90px;
+  padding: 8px;
+  border-right: 1px solid #333;
+  border-bottom: 1px solid #333;
+  font-size: 11px;
+}
+
+.incident-report-section b {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--teal-dark);
+}
+
+.incident-report-signatures {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.remove-first-aid-item {
+  border: 0;
+  background: transparent;
+  color: #a44a35;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+@media (max-width: 800px) {
+  .inspection-types {
+    grid-template-columns: 1fr;
+  }
+
+  .first-aid-condition-row {
+    grid-template-columns: 1fr;
+  }
+
+  .equipment-check-row,
+  .ppe-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .incident-choice-row,
+  .incident-text-grid,
+  .incident-signatures,
+  .incident-report-section {
+    grid-template-columns: 1fr;
+  }
+
+  .incident-report-signatures {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

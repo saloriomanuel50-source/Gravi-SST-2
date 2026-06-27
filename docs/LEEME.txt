@@ -1,0 +1,58 @@
+GVC - SISTEMA DE SEGURIDAD POR OBRA
+
+INICIO
+1. Abra index.html en Chrome, Edge o Firefox.
+2. Registre una obra y selecciónela. Toda la información queda separada por obra.
+3. Desde el tablero ingrese al módulo requerido.
+4. Consulte tendencias de presencia y actividad documental desde el dashboard.
+5. Use Historial para filtrar por obra, fecha, contratista, tipo o búsqueda libre.
+
+MÓDULOS
+- Contratistas: alta y activación de empresas por obra.
+- Trabajadores: expediente reutilizable con fecha de ingreso, clasificación, NSS,
+  fotografía, contacto de emergencia y generación de gafete oficial.
+- Asistencia: control semanal de viernes a jueves, por contratista y trabajador.
+- Visitantes: registro de entrada y salida, incluido en el reporte semanal.
+- Fuerza laboral: captura diaria de personal por contratista y total de obra.
+- Reporte diario: folio consecutivo por obra y vínculo a investigación de accidente.
+- Inspecciones: extintores (máximo siete), botiquín con insumos adicionales,
+  sierra de banco, esmeril y extensión eléctrica.
+- Investigaciones: expediente del accidente, causas, acciones, responsables y firmas.
+- Historiales: consulta de documentos de la obra activa.
+
+CIERRE SEMANAL
+La semana corre de viernes a jueves. Después del jueves a las 16:30, al abrir la
+aplicación se genera y conserva una instantánea inalterable del cierre semanal,
+incluidos sus visitantes. Desde el historial puede abrirse el documento y usar
+"Imprimir / Guardar PDF".
+
+ALMACENAMIENTO
+Los datos, borradores y fotografías se guardan localmente en el navegador de este
+dispositivo. Esta versión no sincroniza información entre equipos y no ejecuta tareas
+si el navegador está completamente cerrado. Para respaldo, use la descarga de datos
+disponible en cada reporte.
+
+COMPATIBILIDAD
+Los registros creados con versiones anteriores se conservan. Los campos nuevos son
+opcionales y se completan como "Sin asignar" o "No especificado" cuando el dato no
+existía. Consulte ANALISIS_Y_COMPATIBILIDAD.md para el mapa técnico y recomendaciones.
+
+EXTENSIONES FUTURAS
+La aplicación incluye un registro de extensiones para incorporar posteriormente NOM,
+gestión documental, matrices, capacitación, EPP, brigadas y Protección Civil sin
+modificar los módulos actuales. Consulte REPORTE_FASE_2.md.
+
+FASE 4
+El módulo normativo es compatible a nivel de resumen con GVC-SSH-MAT-001: 13 NOM,
+756 criterios y cálculo por Cumple / N/A. La matriz Excel continúa como referencia
+maestra. Consulte VALIDACION_OPERATIVA_FINAL.md para resultados, riesgos y pendientes.
+
+FASE 5
+Cumplimiento incluye criterios verificables, historial de cambios, evidencia y acciones.
+Botiquines y extintores se programan mensualmente el primer día laborable, con atraso
+sin domingos y reporte comparativo mensual. Consulte FASE_5_CUMPLIMIENTO_OPERATIVO.md.
+
+FASE 5.2
+El sistema inicia por desarrollo y obra, utiliza el logotipo oficial GRAVI Constructora
+y cuenta con menú contextual retráctil en escritorio y superpuesto en móvil. Consulte
+FASE_5_2_NAVEGACION_LOGO_GRAVI.md para instrucciones de prueba.

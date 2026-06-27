@@ -1,0 +1,16 @@
+{
+  "name": "gravi-sst-v2",
+  "version": "2.0.0",
+  "private": true,
+  "description": "GRAVI SST v2.0 - sistema de seguridad, salud, inspecciones y cumplimiento para obra.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "node scripts/validate-build.js",
+    "validate": "node scripts/validate-build.js"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
