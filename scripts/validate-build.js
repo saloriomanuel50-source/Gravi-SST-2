@@ -26,7 +26,9 @@ const requiredFiles = [
   "src/styles/phase4.css",
   "src/styles/phase5.css",
   "src/styles/phase5-2.css",
-  "assets/gravi-constructora-oficial.jpeg",
+  "assets/gravi-sst-logo-dark.png",
+  "assets/gravi-sst-login-panel.png",
+  "assets/gravi-sst-splash.png",
   "assets/pwa-icon-192.png",
   "assets/pwa-icon-512.png",
   "api/supabase-config.js",
@@ -78,7 +80,7 @@ const expectedIndexReferences = [
   "./src/styles/phase5-2.css?v=6",
   "./src/supabase.js",
   "./src/bootstrap.js",
-  "./assets/gravi-constructora-oficial.jpeg",
+  "./assets/gravi-sst-logo-dark.png",
   "./manifest.json"
 ];
 for (const reference of expectedIndexReferences) {
@@ -91,7 +93,7 @@ for (const reference of ["./src/app.js", "./src/corporate-documents.js", "./src/
 }
 
 const serviceWorker = read("service-worker.js");
-for (const reference of ["./src/app.js", "./src/supabase.js", "./src/bootstrap.js", "./src/styles/phase5-2.css?v=6", "./assets/pwa-icon-192.png"]) {
+for (const reference of ["./src/app.js", "./src/supabase.js", "./src/bootstrap.js", "./src/styles/phase5-2.css?v=6", "./assets/gravi-sst-logo-dark.png", "./assets/gravi-sst-login-panel.png", "./assets/gravi-sst-splash.png", "./assets/pwa-icon-192.png"]) {
   if (!serviceWorker.includes(reference)) fail(`service-worker.js no precachea ${reference}`);
 }
 
