@@ -25,9 +25,27 @@
   <link rel="stylesheet" href="./src/styles/phase5.css?v=1">
   <link rel="stylesheet" href="./src/styles/phase5-2.css?v=6">
 </head>
-<body class="auth-locked">
+<body class="auth-loading">
   <div class="splash-screen" aria-hidden="true"></div>
   <section class="auth-screen" id="authView" aria-labelledby="authTitle">
+    <div class="auth-loading-screen" id="authLoadingScreen" aria-live="polite">
+      <div class="auth-loading-card">
+        <div class="auth-loader-spinner" aria-hidden="true"></div>
+        <div class="auth-loading-copy">
+          <h1>Cargando acceso seguro</h1>
+          <p>Verificando tu sesión antes de mostrar la aplicación.</p>
+        </div>
+      </div>
+    </div>
+    <div class="app-loading-screen" id="appLoadingScreen" aria-live="polite">
+      <div class="auth-loading-card">
+        <div class="auth-loader-spinner" aria-hidden="true"></div>
+        <div class="auth-loading-copy">
+          <h1>Cargando la aplicación</h1>
+          <p>Preparando el entorno y los datos de la obra seleccionada.</p>
+        </div>
+      </div>
+    </div>
     <div class="auth-card">
       <div class="auth-visual" aria-hidden="true"></div>
       <div class="auth-panel">

@@ -31,7 +31,7 @@
   async function enterApplication() {
     const profile = window.GraviSupabase.getProfile();
     const user = window.GraviSupabase.getUser();
-    document.body.classList.remove("auth-locked","role-administrador","role-supervisor-sst","role-consulta");
+    document.body.classList.remove("auth-locked","auth-loading","auth-login","app-loading","role-administrador","role-supervisor-sst","role-consulta");
     document.body.classList.add(roleClass(profile.role));
     document.querySelector("#currentUserName").textContent = profile.full_name || user.email || "Usuario";
     document.querySelector("#currentUserRole").textContent = profile.role;
@@ -41,8 +41,21 @@
     window.dispatchEvent(new CustomEvent("gvc:auth-ready", {detail:{user,profile}}));
   }
 
+  function showAuthLoading() {
+    document.body.classList.remove("auth-login", "auth-locked", "app-loading");
+    document.body.classList.add("auth-loading");
+    authMessage.textContent = "";
+  }
+
+  function showAppLoading() {
+    document.body.classList.remove("auth-loading", "auth-login", "auth-locked");
+    document.body.classList.add("app-loading");
+    authMessage.textContent = "";
+  }
+
   function showLogin(message="") {
-    document.body.classList.add("auth-locked");
+    document.body.classList.remove("auth-loading", "app-loading");
+    document.body.classList.add("auth-locked", "auth-login");
     authMessage.textContent = message;
     loginForm.elements.email.focus();
   }
@@ -130,9 +143,12 @@
   });
 
   try {
+    showAuthLoading();
     const state = await window.GraviSupabase.bootstrap();
-    if (state.authenticated) await enterApplication();
-    else showLogin(state.configured ? "" : "Supabase no está configurado en este despliegue.");
+    if (state.authenticated) {
+      showAppLoading();
+      await enterApplication();
+    } else showLogin(state.configured ? "" : "Supabase no está configurado en este despliegue.");
   } catch (error) {
     console.error("No fue posible preparar el acceso a GRAVI SST.", error);
     showLogin("No fue posible conectar con el servicio de acceso.");
