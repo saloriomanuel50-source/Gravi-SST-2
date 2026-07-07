@@ -5,6 +5,8 @@
   const RECORDS_CACHE_KEY = "gvc-extintores-records-v1";
   const PENDING_KEY = "gvc-supabase-pending-v1";
   const SESSION_KEY = "gvc-supabase-session-v1";
+  const DYNAMIC_FORMATS_CACHE_KEY = "gvc-dynamic-formats-v1";
+  const DYNAMIC_FORMATS_PENDING_KEY = "gvc-dynamic-formats-pending-v1";
   const TABLES = {
     developments: "desarrollos",
     works: "obras",
@@ -569,9 +571,101 @@
     return payload;
   }
 
+  function dynamicFormatsCache() {
+    return readJson(DYNAMIC_FORMATS_CACHE_KEY, {formats:[],records:[]});
+  }
+
+  function writeDynamicFormatsCache(cache) {
+    writeJson(DYNAMIC_FORMATS_CACHE_KEY, {formats:cache.formats || [], records:cache.records || []});
+  }
+
+  function queueDynamicFormatOperation(type, payload) {
+    const pending = readJson(DYNAMIC_FORMATS_PENDING_KEY, []);
+    pending.push({id:crypto.randomUUID(),type,payload,queuedAt:new Date().toISOString()});
+    writeJson(DYNAMIC_FORMATS_PENDING_KEY, pending);
+  }
+
+  function dynamicFormatResult(data, extra={}) {
+    return {success:true, source:"local-placeholder", data, ...extra};
+  }
+
+  async function listDynamicFormats(filters={}) {
+    const cache = dynamicFormatsCache();
+    let formats = cache.formats.filter(item => !item.deletedAt);
+    if (filters.workId) formats = formats.filter(item => !item.workId || item.workId === filters.workId);
+    if (filters.category) formats = formats.filter(item => item.category === filters.category || item.category_id === filters.category);
+    if (filters.status) formats = formats.filter(item => item.status === filters.status);
+    return dynamicFormatResult(formats);
+  }
+
+  async function getDynamicFormat(id) {
+    const format = dynamicFormatsCache().formats.find(item => item.id === id && !item.deletedAt) || null;
+    return dynamicFormatResult(format);
+  }
+
+  async function saveDynamicFormat(payload={}) {
+    if (!can("admin-write")) return {success:false,error:"Solo un Administrador puede guardar formatos."};
+    const cache = dynamicFormatsCache();
+    const now = new Date().toISOString();
+    const item = {...payload,id:payload.id || crypto.randomUUID(),createdAt:payload.createdAt || now,updatedAt:now};
+    cache.formats = cache.formats.filter(format => format.id !== item.id);
+    cache.formats.unshift(item);
+    writeDynamicFormatsCache(cache);
+    queueDynamicFormatOperation("saveFormat", item);
+    return dynamicFormatResult(item, {formatId:item.id});
+  }
+
+  async function deleteDynamicFormat(id) {
+    if (!can("admin-write")) return {success:false,error:"Solo un Administrador puede eliminar formatos."};
+    const cache = dynamicFormatsCache();
+    const item = cache.formats.find(format => format.id === id);
+    if (item) {
+      item.deletedAt = new Date().toISOString();
+      item.updatedAt = item.deletedAt;
+      writeDynamicFormatsCache(cache);
+    }
+    queueDynamicFormatOperation("deleteFormat", {id});
+    return dynamicFormatResult(null);
+  }
+
+  async function createDynamicFormatRecord(payload={}) {
+    if (!can("field-write")) return {success:false,error:"Tu rol no permite crear registros de formatos."};
+    const cache = dynamicFormatsCache();
+    const now = new Date().toISOString();
+    const item = {...payload,id:payload.id || crypto.randomUUID(),createdAt:payload.createdAt || now,updatedAt:now};
+    cache.records.unshift(item);
+    writeDynamicFormatsCache(cache);
+    queueDynamicFormatOperation("createRecord", item);
+    return dynamicFormatResult(item, {recordId:item.id});
+  }
+
+  async function updateDynamicFormatRecord(id, updates={}) {
+    if (!can("field-write")) return {success:false,error:"Tu rol no permite actualizar registros de formatos."};
+    const cache = dynamicFormatsCache();
+    const item = cache.records.find(record => record.id === id);
+    if (item) Object.assign(item, updates, {updatedAt:new Date().toISOString()});
+    writeDynamicFormatsCache(cache);
+    queueDynamicFormatOperation("updateRecord", {id,updates});
+    return dynamicFormatResult(item || null);
+  }
+
+  async function flushDynamicFormatsPending() {
+    return {success:true, source:"local-placeholder", pending:readJson(DYNAMIC_FORMATS_PENDING_KEY, []).length};
+  }
+
+  const dynamicFormats = Object.freeze({
+    listFormats:listDynamicFormats,
+    getFormat:getDynamicFormat,
+    saveFormat:saveDynamicFormat,
+    deleteFormat:deleteDynamicFormat,
+    createRecord:createDynamicFormatRecord,
+    updateRecord:updateDynamicFormatRecord,
+    flushPending:flushDynamicFormatsPending
+  });
+
   global.GraviSupabase = {
     bootstrap, login, logout, scheduleSystemSync, syncSystemData, upsertRecord, syncRecords,
-    listProfiles, updateProfile, inviteUser, can,
+    listProfiles, updateProfile, inviteUser, can, dynamicFormats,
     isConfigured:() => configured, isAuthenticated:() => Boolean(currentSession && currentProfile),
     getStatus:() => ({...lastStatus}), getUser:() => currentSession?.user || null,
     getProfile:() => currentProfile ? {...currentProfile} : null

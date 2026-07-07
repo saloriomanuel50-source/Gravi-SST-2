@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_NAME = "gravi-sst-v2-shell-v6";
+const CACHE_NAME = "gravi-sst-v2-shell-v7";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -20,6 +20,10 @@ const APP_SHELL = [
   "./src/corporate-documents.js",
   "./src/extensions.js?v=2",
   "./src/system.js",
+  "./src/dynamic-formats.js",
+  "./src/dynamic-formats-controller.js",
+  "./src/dynamic-formats-bootstrap.js",
+  "./src/dynamic-formats-ui.html",
   "./src/pwa.js",
   "./assets/gravi-sst-logo-dark.png",
   "./assets/gravi-sst-login-panel.png",

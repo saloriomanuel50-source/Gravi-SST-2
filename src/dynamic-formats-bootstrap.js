@@ -1,109 +1,85 @@
 /**
- * Bootstrap del módulo de Formatos Dinámicos
- * Se ejecuta después de la carga de bootstrap.js y cuando Supabase está listo
+ * Bootstrap del modulo de Formatos Dinamicos.
+ * Fase 1: usa el contrato publico GraviSupabase.dynamicFormats.
  */
 
 (function initDynamicFormatsBootstrap(global) {
   "use strict";
 
-  // Esperar a que GraviSupabase esté disponible
-  const checkSupabase = setInterval(() => {
-    if (!global.GraviSupabase) return;
+  let bootstrapped = false;
+  let navigationBound = false;
 
-    clearInterval(checkSupabase);
-    bootstrapDynamicFormats();
-  }, 100);
+  function dynamicFormatsReady() {
+    return Boolean(
+      global.GraviSupabase?.isAuthenticated?.() &&
+      global.GraviSupabase?.dynamicFormats &&
+      global.GraviDynamicFormats &&
+      global.GraviDynamicFormatsUI
+    );
+  }
 
   async function bootstrapDynamicFormats() {
+    if (bootstrapped || !dynamicFormatsReady()) return false;
+
     try {
-      // Obtener instancia de Supabase
-      const supabase = global.GraviSupabase.getSupabaseClient?.() || global.supabaseClient;
-      const session = global.GraviSupabase.getCurrentSession?.();
+      const dynamicFormatsAPI = global.GraviDynamicFormats.init({
+        storage: global.GraviSupabase.dynamicFormats,
+        can: global.GraviSupabase.can,
+        getUser: global.GraviSupabase.getUser,
+        getProfile: global.GraviSupabase.getProfile
+      });
 
-      if (!supabase || !session) {
-        console.log("[DynamicFormats] Esperando autenticación...");
-        return;
-      }
-
-      // Inicializar módulo
-      if (!global.GraviDynamicFormats) {
-        console.error("[DynamicFormats] Módulo no cargado");
-        return;
-      }
-
-      const dynamicFormatsAPI = global.GraviDynamicFormats.init(supabase, session);
-
-      // Inyectar UI HTML
       await injectDynamicFormatsUI();
-
-      // Inicializar interfaz
-      if (global.GraviDynamicFormatsUI) {
-        global.GraviDynamicFormatsUI.init(dynamicFormatsAPI);
-      }
-
-      // Configurar evento de navegación
-      setupNavigation();
-
-      console.log("[DynamicFormats] Bootstrap completado");
+      global.GraviDynamicFormatsUI.init(dynamicFormatsAPI);
+      bootstrapped = true;
+      return true;
     } catch (error) {
       console.error("[DynamicFormats] Error en bootstrap:", error);
+      return false;
     }
   }
 
-  /**
-   * Inyecta el HTML de la UI de formatos dinámicos
-   */
   async function injectDynamicFormatsUI() {
     const container = document.getElementById("dynamicFormatsContainer");
-    if (!container) {
-      console.warn("[DynamicFormats] Contenedor no encontrado");
-      return;
-    }
+    if (!container || container.dataset.loaded === "1") return;
 
-    try {
-      const response = await fetch("./src/dynamic-formats-ui.html");
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const response = await fetch("./src/dynamic-formats-ui.html");
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      const html = await response.text();
-      container.innerHTML = html;
-
-      console.log("[DynamicFormats] UI inyectada");
-    } catch (error) {
-      console.error("[DynamicFormats] Error inyectando UI:", error);
-    }
+    container.innerHTML = await response.text();
+    container.dataset.loaded = "1";
   }
 
-  /**
-   * Configura el evento de navegación para mostrar la vista de formatos
-   */
-  function setupNavigation() {
-    document.addEventListener("click", (e) => {
-      const target = e.target.closest("[data-phase3-nav]");
+  function bindNavigation() {
+    if (navigationBound) return;
+    navigationBound = true;
+
+    document.addEventListener("click", async event => {
+      const target = event.target.closest("[data-phase3-nav]");
       if (!target || target.dataset.phase3Nav !== "dynamicFormats") return;
 
-      e.preventDefault();
+      const ready = await bootstrapDynamicFormats();
+      if (!ready) {
+        console.warn("[DynamicFormats] Modulo aun no disponible.");
+        return;
+      }
+
+      event.preventDefault();
       showDynamicFormatsView();
     });
   }
 
-  /**
-   * Muestra la vista de formatos dinámicos
-   */
   function showDynamicFormatsView() {
-    // Ocultar otras vistas
-    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
-    document.querySelectorAll(".view.admin-only, .view.work-only").forEach(v => v.hidden = true);
-
-    // Mostrar vista de formatos
     const view = document.getElementById("dynamicFormatsView");
-    if (view) {
-      view.hidden = false;
-      view.classList.add("active");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+    if (!view) return;
+
+    document.querySelectorAll(".view").forEach(item => item.classList.remove("active"));
+    view.hidden = false;
+    view.classList.add("active");
+    window.scrollTo({top:0, behavior:"smooth"});
   }
 
-  // Exportar referencia a función de navegación
+  bindNavigation();
+  global.addEventListener("gvc:auth-ready", () => { bootstrapDynamicFormats(); });
   global.showDynamicFormatsView = showDynamicFormatsView;
-
 })(window);

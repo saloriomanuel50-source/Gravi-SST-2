@@ -10,19 +10,19 @@
     TEXT_LONG: "Texto largo",
     DATE: "Fecha",
     TIME: "Hora",
-    NUMBER: "Número",
+    NUMBER: "NÃºmero",
     DROPDOWN: "Lista desplegable",
-    CHECKBOX: "Casilla de verificación",
+    CHECKBOX: "Casilla de verificaciÃ³n",
     SIGNATURE: "Firma",
-    EVIDENCE: "Evidencia fotográfica",
-    WORK_SELECT: "Selección de obra",
-    CONTRACTOR_SELECT: "Selección de contratista",
-    WORKER_SELECT: "Selección de trabajador",
+    EVIDENCE: "Evidencia fotogrÃ¡fica",
+    WORK_SELECT: "SelecciÃ³n de obra",
+    CONTRACTOR_SELECT: "SelecciÃ³n de contratista",
+    WORKER_SELECT: "SelecciÃ³n de trabajador",
     RESPONSIBLE: "Responsable",
     OBSERVATIONS: "Observaciones"
   };
 
-  // Categorías de formatos
+  // CategorÃ­as de formatos
   const FORMAT_CATEGORIES = {
     INSPECTION: "insp",
     ACCIDENT_INVESTIGATION: "acc",
@@ -52,17 +52,16 @@
     SENT: "Enviado"
   };
 
-  let supabase = null;
-  let currentSession = null;
+  let storage = null;
+  const legacyStorage = null;
   let formatCache = [];
 
   /**
-   * Inicializa el módulo con instancia de Supabase
+   * Inicializa el mÃ³dulo con instancia de Supabase
    */
-  function init(supabaseInstance, session) {
-    supabase = supabaseInstance;
-    currentSession = session;
-    console.log("[DynamicFormats] Módulo inicializado");
+  function init(options = {}) {
+    storage = options.storage || options;
+    console.log("[DynamicFormats] MÃ³dulo inicializado");
     return {
       loadFormats,
       uploadFormat,
@@ -86,10 +85,14 @@
    * Carga los formatos disponibles desde Supabase
    */
   async function loadFormats(workId = null, filters = {}) {
-    if (!supabase) throw new Error("Módulo no inicializado");
+    return listFormats({...filters, workId});
+  }
+
+  async function legacyLoadFormats(workId = null, filters = {}) {
+    if (!legacyStorage) throw new Error("MÃ³dulo no inicializado");
     
     try {
-      let query = supabase
+      let query = legacyStorage
         .from("dynamic_formats")
         .select("*, format_categories(name, description), format_fields(*)")
         .neq("deleted_at", null)
@@ -124,15 +127,15 @@
    * Retorna estructura, campos detectados y validaciones
    */
   async function analyzeExcelFile(file) {
-    if (!file) throw new Error("No se proporcionó archivo");
+    if (!file) throw new Error("No se proporcionÃ³ archivo");
     if (!file.name.match(/\.(xlsx|xls)$/i)) {
       throw new Error("Solo se aceptan archivos Excel (.xlsx, .xls)");
     }
 
     try {
-      // Verificar que XLSX esté disponible
+      // Verificar que XLSX estÃ© disponible
       if (typeof XLSX === "undefined") {
-        throw new Error("Librería XLSX no cargada. Agregue: <script src=\"https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js\"></script>");
+        throw new Error("LibrerÃ­a XLSX no cargada. Agregue: <script src=\"https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js\"></script>");
       }
 
       const arrayBuffer = await file.arrayBuffer();
@@ -143,14 +146,14 @@
       const mainSheet = formatoSheet ? "FORMATO" : workbook.SheetNames[0];
       
       if (!mainSheet) {
-        throw new Error("El archivo Excel no contiene hojas válidas");
+        throw new Error("El archivo Excel no contiene hojas vÃ¡lidas");
       }
 
       const worksheet = workbook.Sheets[mainSheet];
       const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
       if (!data || data.length === 0) {
-        throw new Error("El archivo Excel está vacío");
+        throw new Error("El archivo Excel estÃ¡ vacÃ­o");
       }
 
       // Analizar estructura
@@ -195,8 +198,8 @@
       activity: "Actividad",
       hallazgo: "Hallazgo",
       finding: "Hallazgo",
-      acción: "Acción correctiva",
-      action: "Acción correctiva",
+      acciÃ³n: "AcciÃ³n correctiva",
+      action: "AcciÃ³n correctiva",
       evidencia: "Evidencia",
       evidence: "Evidencia",
       firma: "Firma",
@@ -250,34 +253,34 @@
     if (cellStr.includes("contratista") || cellStr.includes("contractor")) return FIELD_TYPES.CONTRACTOR_SELECT;
     if (cellStr.includes("trabajador") || cellStr.includes("worker")) return FIELD_TYPES.WORKER_SELECT;
     if (cellStr.includes("responsable") || cellStr.includes("responsible")) return FIELD_TYPES.RESPONSIBLE;
-    if (cellStr.includes("observación") || cellStr.includes("observation")) return FIELD_TYPES.OBSERVATIONS;
+    if (cellStr.includes("observaciÃ³n") || cellStr.includes("observation")) return FIELD_TYPES.OBSERVATIONS;
     if (typeof cellValue === "number") return FIELD_TYPES.NUMBER;
     if (String(cellValue).length > 50) return FIELD_TYPES.TEXT_LONG;
     return FIELD_TYPES.TEXT_SHORT;
   }
 
   /**
-   * Sugiere categoría basada en contenido del Excel
+   * Sugiere categorÃ­a basada en contenido del Excel
    */
   function suggestCategory(data) {
     const content = data.slice(0, 10).flat().join(" ").toLowerCase();
     
-    if (content.includes("inspección") || content.includes("inspection")) return FORMAT_CATEGORIES.INSPECTION;
+    if (content.includes("inspecciÃ³n") || content.includes("inspection")) return FORMAT_CATEGORIES.INSPECTION;
     if (content.includes("accidente") || content.includes("accident")) return FORMAT_CATEGORIES.ACCIDENT_INVESTIGATION;
     if (content.includes("permiso") || content.includes("permit")) return FORMAT_CATEGORIES.WORK_PERMIT;
-    if (content.includes("checklist") || content.includes("verificación")) return FORMAT_CATEGORIES.CHECKLIST;
-    if (content.includes("bitácora") || content.includes("logbook")) return FORMAT_CATEGORIES.LOGBOOK;
-    if (content.includes("epp") || content.includes("protección")) return FORMAT_CATEGORIES.EPP_DELIVERY;
-    if (content.includes("capacitación") || content.includes("training")) return FORMAT_CATEGORIES.TRAINING;
+    if (content.includes("checklist") || content.includes("verificaciÃ³n")) return FORMAT_CATEGORIES.CHECKLIST;
+    if (content.includes("bitÃ¡cora") || content.includes("logbook")) return FORMAT_CATEGORIES.LOGBOOK;
+    if (content.includes("epp") || content.includes("protecciÃ³n")) return FORMAT_CATEGORIES.EPP_DELIVERY;
+    if (content.includes("capacitaciÃ³n") || content.includes("training")) return FORMAT_CATEGORIES.TRAINING;
     if (content.includes("asistencia") || content.includes("attendance")) return FORMAT_CATEGORIES.ATTENDANCE;
     if (content.includes("reporte diario") || content.includes("daily report")) return FORMAT_CATEGORIES.DAILY_REPORT;
-    if (content.includes("fotográfico") || content.includes("photo")) return FORMAT_CATEGORIES.PHOTO_REPORT;
+    if (content.includes("fotogrÃ¡fico") || content.includes("photo")) return FORMAT_CATEGORIES.PHOTO_REPORT;
     
     return FORMAT_CATEGORIES.OTHER;
   }
 
   /**
-   * Extrae metadata del Excel (nombre, versión, responsable, etc)
+   * Extrae metadata del Excel (nombre, versiÃ³n, responsable, etc)
    */
   function extractMetadata(data) {
     const metadata = {
@@ -300,10 +303,10 @@
       if (rowStr.includes("nombre") || rowStr.includes("format")) {
         metadata.formatName = String(row[1] || "").trim();
       }
-      if (rowStr.includes("código") || rowStr.includes("code")) {
+      if (rowStr.includes("cÃ³digo") || rowStr.includes("code")) {
         metadata.formatCode = String(row[1] || "").trim();
       }
-      if (rowStr.includes("versión") || rowStr.includes("version")) {
+      if (rowStr.includes("versiÃ³n") || rowStr.includes("version")) {
         metadata.version = String(row[1] || "").trim();
       }
       if (rowStr.includes("responsable") || rowStr.includes("responsible")) {
@@ -327,14 +330,14 @@
       score: 100
     };
 
-    // Validar que no esté vacío
+    // Validar que no estÃ© vacÃ­o
     if (!data || data.length === 0) {
-      validation.errors.push("Archivo Excel vacío");
+      validation.errors.push("Archivo Excel vacÃ­o");
       validation.score = 0;
       return validation;
     }
 
-    // Validar cantidad mínima de filas
+    // Validar cantidad mÃ­nima de filas
     if (data.length < 3) {
       validation.warnings.push("El formato tiene muy pocas filas. Se recomienda al menos 3 filas.");
       validation.score -= 10;
@@ -343,11 +346,11 @@
     // Validar si tiene encabezados claros
     const firstRow = data[0] || [];
     if (firstRow.length === 0) {
-      validation.errors.push("Primera fila vacía - se esperan encabezados");
+      validation.errors.push("Primera fila vacÃ­a - se esperan encabezados");
       validation.score -= 30;
     }
 
-    // Advertencias sobre diseño
+    // Advertencias sobre diseÃ±o
     let mergedCells = 0;
     let emptyColumns = 0;
     
@@ -363,14 +366,14 @@
     }
 
     if (emptyColumns > 0) {
-      validation.warnings.push(`Se detectaron ${emptyColumns} columna(s) vacía(s). Considere eliminarlas.`);
+      validation.warnings.push(`Se detectaron ${emptyColumns} columna(s) vacÃ­a(s). Considere eliminarlas.`);
       validation.score -= 5;
     }
 
     // Validar que tenga al menos un campo
     const nonEmptyCells = data.flat().filter(cell => cell && String(cell).trim().length > 0).length;
     if (nonEmptyCells < 3) {
-      validation.errors.push("Formato con muy pocos campos válidos");
+      validation.errors.push("Formato con muy pocos campos vÃ¡lidos");
       validation.score -= 40;
     }
 
@@ -381,6 +384,8 @@
   /**
    * Valida un formato completo antes de guardar
    */
+  function uploadFormat(formatData) { return saveFormat(formatData); }
+
   function validateFormat(formatData) {
     const errors = [];
     const warnings = [];
@@ -390,7 +395,7 @@
     }
 
     if (!formatData.category) {
-      errors.push("La categoría del formato es obligatoria");
+      errors.push("La categorÃ­a del formato es obligatoria");
     }
 
     if (!formatData.fields || formatData.fields.length === 0) {
@@ -405,7 +410,7 @@
     }
 
     if (!formatData.version || formatData.version.trim().length === 0) {
-      warnings.push("Se recomienda especificar una versión para el formato");
+      warnings.push("Se recomienda especificar una versiÃ³n para el formato");
     }
 
     const uniqueFieldNames = new Set(formatData.fields.map(f => f.name));
@@ -424,7 +429,14 @@
    * Guarda un nuevo formato en Supabase
    */
   async function saveFormat(formatData) {
-    if (!supabase) throw new Error("Módulo no inicializado");
+    if (!storage?.saveFormat) return {success:false,error:"Almacenamiento de formatos no disponible."};
+    const validation = validateFormat(formatData);
+    if (!validation.isValid) return { success:false, errors:validation.errors };
+    return storage.saveFormat({...formatData, validationWarnings:validation.warnings});
+  }
+
+  async function legacySaveFormat(formatData) {
+    if (!legacyStorage) throw new Error("MÃ³dulo no inicializado");
     
     // Validar
     const validation = validateFormat(formatData);
@@ -437,7 +449,7 @@
       const now = new Date().toISOString();
 
       // Guardar formato
-      const { error: formatError } = await supabase
+      const { error: formatError } = await legacyStorage
         .from("dynamic_formats")
         .insert({
           id: formatId,
@@ -445,12 +457,12 @@
           description: formatData.description || "",
           category_id: formatData.category,
           format_code: formatData.formatCode || "",
-          format_type: formatData.formatType || "Estándar",
+          format_type: formatData.formatType || "EstÃ¡ndar",
           version: formatData.version || "1.0",
           status: formatData.status || FORMAT_STATUS.DRAFT,
           vigency_start: formatData.vigencyStart || new Date().toISOString().split("T")[0],
           vigency_end: formatData.vigencyEnd || null,
-          created_by: currentSession?.user?.id || "system",
+          created_by: "system",
           work_id: formatData.workId || null,
           original_filename: formatData.originalFilename || "",
           excel_structure: formatData.excelStructure || {},
@@ -484,23 +496,23 @@
           metadata: field.metadata || {}
         }));
 
-        const { error: fieldsError } = await supabase
+        const { error: fieldsError } = await legacyStorage
           .from("format_fields")
           .insert(fieldsToInsert);
 
         if (fieldsError) throw fieldsError;
       }
 
-      // Crear versión inicial
-      await supabase
+      // Crear versiÃ³n inicial
+      await legacyStorage
         .from("format_versions")
         .insert({
           id: crypto.randomUUID(),
           format_id: formatId,
           version_number: formatData.version || "1.0",
           version_date: new Date().toISOString().split("T")[0],
-          changelog: "Versión inicial",
-          changed_by: currentSession?.user?.id || "system",
+          changelog: "VersiÃ³n inicial",
+          changed_by: "system",
           payload: formatData
         });
 
@@ -513,13 +525,18 @@
   }
 
   /**
-   * Obtiene un formato específico
+   * Obtiene un formato especÃ­fico
    */
   async function getFormat(formatId) {
-    if (!supabase) throw new Error("Módulo no inicializado");
+    if (!storage?.getFormat) return {success:true,data:null,source:"unavailable"};
+    return storage.getFormat(formatId);
+  }
+
+  async function legacyGetFormat(formatId) {
+    if (!legacyStorage) throw new Error("MÃ³dulo no inicializado");
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await legacyStorage
         .from("dynamic_formats")
         .select("*, format_fields(*)")
         .eq("id", formatId)
@@ -537,10 +554,17 @@
    * Lista formatos con filtros
    */
   async function listFormats(filters = {}) {
-    if (!supabase) throw new Error("Módulo no inicializado");
+    if (!storage?.listFormats) return {success:true,data:[],source:"unavailable"};
+    const result = await storage.listFormats(filters);
+    if (result.success) formatCache = result.data || [];
+    return result;
+  }
+
+  async function legacyListFormats(filters = {}) {
+    if (!legacyStorage) throw new Error("MÃ³dulo no inicializado");
 
     try {
-      let query = supabase
+      let query = legacyStorage
         .from("dynamic_formats")
         .select("id, name, category_id, version, status, created_at, format_categories(name)");
 
@@ -570,10 +594,15 @@
    * Elimina un formato (soft delete)
    */
   async function deleteFormat(formatId) {
-    if (!supabase) throw new Error("Módulo no inicializado");
+    if (!storage?.deleteFormat) return {success:false,error:"Almacenamiento de formatos no disponible."};
+    return storage.deleteFormat(formatId);
+  }
+
+  async function legacyDeleteFormat(formatId) {
+    if (!legacyStorage) throw new Error("MÃ³dulo no inicializado");
 
     try {
-      const { error } = await supabase
+      const { error } = await legacyStorage
         .from("dynamic_formats")
         .update({ deleted_at: new Date().toISOString() })
         .eq("id", formatId);
@@ -590,18 +619,23 @@
    * Crea un nuevo registro desde un formato
    */
   async function createRecord(formatId, capturedData, workId) {
-    if (!supabase) throw new Error("Módulo no inicializado");
+    if (!storage?.createRecord) return {success:false,error:"Almacenamiento de formatos no disponible."};
+    return storage.createRecord({formatId, capturedData, workId, status:RECORD_STATUS.DRAFT});
+  }
+
+  async function legacyCreateRecord(formatId, capturedData, workId) {
+    if (!legacyStorage) throw new Error("MÃ³dulo no inicializado");
 
     try {
       const recordId = crypto.randomUUID();
-      const { error } = await supabase
+      const { error } = await legacyStorage
         .from("format_records")
         .insert({
           id: recordId,
           format_id: formatId,
           work_id: workId,
           captured_data: capturedData,
-          created_by: currentSession?.user?.id || "system",
+          created_by: "system",
           status: RECORD_STATUS.DRAFT
         });
 
@@ -617,10 +651,14 @@
    * Obtiene un registro
    */
   async function getRecord(recordId) {
-    if (!supabase) throw new Error("Módulo no inicializado");
+    return {success:false,error:"Consulta de registros dinámicos no implementada en Fase 1.",recordId};
+  }
+
+  async function legacyGetRecord(recordId) {
+    if (!legacyStorage) throw new Error("MÃ³dulo no inicializado");
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await legacyStorage
         .from("format_records")
         .select("*")
         .eq("id", recordId)
@@ -638,14 +676,19 @@
    * Actualiza un registro
    */
   async function updateRecord(recordId, updates) {
-    if (!supabase) throw new Error("Módulo no inicializado");
+    if (!storage?.updateRecord) return {success:false,error:"Almacenamiento de formatos no disponible."};
+    return storage.updateRecord(recordId, updates);
+  }
+
+  async function legacyUpdateRecord(recordId, updates) {
+    if (!legacyStorage) throw new Error("MÃ³dulo no inicializado");
 
     try {
-      const { error } = await supabase
+      const { error } = await legacyStorage
         .from("format_records")
         .update({
           ...updates,
-          updated_by: currentSession?.user?.id || "system",
+          updated_by: "system",
           updated_at: new Date().toISOString()
         })
         .eq("id", recordId);
@@ -659,9 +702,13 @@
   }
 
   /**
-   * Exporta un registro a PDF (básico - requiere librería adicional)
+   * Exporta un registro a PDF (bÃ¡sico - requiere librerÃ­a adicional)
    */
   async function exportRecordToPDF(recordId) {
+    return {success:false,error:"Exportación PDF de formatos dinámicos no implementada en Fase 1.",recordId};
+  }
+
+  async function legacyExportRecordToPDF(recordId) {
     try {
       const result = await getRecord(recordId);
       if (!result.success) throw new Error(result.error);
@@ -672,7 +719,7 @@
 
       const format = formatResult.data;
 
-      // Estructura básica para PDF (requiere librería jsPDF o similar)
+      // Estructura bÃ¡sica para PDF (requiere librerÃ­a jsPDF o similar)
       const pdfData = {
         formatName: format.name,
         formatVersion: format.version,
@@ -689,7 +736,7 @@
     }
   }
 
-  // Exportar API pública
+  // Exportar API pÃºblica
   global.GraviDynamicFormats = {
     init,
     FIELD_TYPES,
@@ -698,6 +745,6 @@
     RECORD_STATUS
   };
 
-  console.log("[DynamicFormats] Módulo cargado. Use GraviDynamicFormats.init() para inicializar.");
+  console.log("[DynamicFormats] MÃ³dulo cargado. Use GraviDynamicFormats.init() para inicializar.");
 
 })(window);
