@@ -10,19 +10,19 @@
     TEXT_LONG: "Texto largo",
     DATE: "Fecha",
     TIME: "Hora",
-    NUMBER: "NÃºmero",
+    NUMBER: "Número",
     DROPDOWN: "Lista desplegable",
-    CHECKBOX: "Casilla de verificaciÃ³n",
+    CHECKBOX: "Casilla de verificación",
     SIGNATURE: "Firma",
-    EVIDENCE: "Evidencia fotogrÃ¡fica",
-    WORK_SELECT: "SelecciÃ³n de obra",
-    CONTRACTOR_SELECT: "SelecciÃ³n de contratista",
-    WORKER_SELECT: "SelecciÃ³n de trabajador",
+    EVIDENCE: "Evidencia fotográfica",
+    WORK_SELECT: "Selección de obra",
+    CONTRACTOR_SELECT: "Selección de contratista",
+    WORKER_SELECT: "Selección de trabajador",
     RESPONSIBLE: "Responsable",
     OBSERVATIONS: "Observaciones"
   };
 
-  // CategorÃ­as de formatos
+  // Categorías de formatos
   const FORMAT_CATEGORIES = {
     INSPECTION: "insp",
     ACCIDENT_INVESTIGATION: "acc",
@@ -57,11 +57,11 @@
   let formatCache = [];
 
   /**
-   * Inicializa el mÃ³dulo con instancia de Supabase
+   * Inicializa el módulo con instancia de Supabase
    */
   function init(options = {}) {
     storage = options.storage || options;
-    console.log("[DynamicFormats] MÃ³dulo inicializado");
+    console.log("[DynamicFormats] Módulo inicializado");
     return {
       loadFormats,
       uploadFormat,
@@ -89,7 +89,7 @@
   }
 
   async function legacyLoadFormats(workId = null, filters = {}) {
-    if (!legacyStorage) throw new Error("MÃ³dulo no inicializado");
+    if (!legacyStorage) throw new Error("Módulo no inicializado");
     
     try {
       let query = legacyStorage
@@ -127,15 +127,15 @@
    * Retorna estructura, campos detectados y validaciones
    */
   async function analyzeExcelFile(file) {
-    if (!file) throw new Error("No se proporcionÃ³ archivo");
+    if (!file) throw new Error("No se proporcionó archivo");
     if (!file.name.match(/\.(xlsx|xls)$/i)) {
       throw new Error("Solo se aceptan archivos Excel (.xlsx, .xls)");
     }
 
     try {
-      // Verificar que XLSX estÃ© disponible
+      // Verificar que XLSX esté disponible
       if (typeof XLSX === "undefined") {
-        throw new Error("LibrerÃ­a XLSX no cargada. Agregue: <script src=\"https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js\"></script>");
+        throw new Error("Librería XLSX no cargada. Agregue: <script src=\"https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js\"></script>");
       }
 
       const arrayBuffer = await file.arrayBuffer();
@@ -146,14 +146,14 @@
       const mainSheet = formatoSheet ? "FORMATO" : workbook.SheetNames[0];
       
       if (!mainSheet) {
-        throw new Error("El archivo Excel no contiene hojas vÃ¡lidas");
+        throw new Error("El archivo Excel no contiene hojas válidas");
       }
 
       const worksheet = workbook.Sheets[mainSheet];
       const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
       if (!data || data.length === 0) {
-        throw new Error("El archivo Excel estÃ¡ vacÃ­o");
+        throw new Error("El archivo Excel está vacío");
       }
 
       // Analizar estructura
@@ -198,8 +198,8 @@
       activity: "Actividad",
       hallazgo: "Hallazgo",
       finding: "Hallazgo",
-      acciÃ³n: "AcciÃ³n correctiva",
-      action: "AcciÃ³n correctiva",
+      acción: "Acción correctiva",
+      action: "Acción correctiva",
       evidencia: "Evidencia",
       evidence: "Evidencia",
       firma: "Firma",
@@ -253,34 +253,34 @@
     if (cellStr.includes("contratista") || cellStr.includes("contractor")) return FIELD_TYPES.CONTRACTOR_SELECT;
     if (cellStr.includes("trabajador") || cellStr.includes("worker")) return FIELD_TYPES.WORKER_SELECT;
     if (cellStr.includes("responsable") || cellStr.includes("responsible")) return FIELD_TYPES.RESPONSIBLE;
-    if (cellStr.includes("observaciÃ³n") || cellStr.includes("observation")) return FIELD_TYPES.OBSERVATIONS;
+    if (cellStr.includes("observación") || cellStr.includes("observation")) return FIELD_TYPES.OBSERVATIONS;
     if (typeof cellValue === "number") return FIELD_TYPES.NUMBER;
     if (String(cellValue).length > 50) return FIELD_TYPES.TEXT_LONG;
     return FIELD_TYPES.TEXT_SHORT;
   }
 
   /**
-   * Sugiere categorÃ­a basada en contenido del Excel
+   * Sugiere categoría basada en contenido del Excel
    */
   function suggestCategory(data) {
     const content = data.slice(0, 10).flat().join(" ").toLowerCase();
     
-    if (content.includes("inspecciÃ³n") || content.includes("inspection")) return FORMAT_CATEGORIES.INSPECTION;
+    if (content.includes("inspección") || content.includes("inspection")) return FORMAT_CATEGORIES.INSPECTION;
     if (content.includes("accidente") || content.includes("accident")) return FORMAT_CATEGORIES.ACCIDENT_INVESTIGATION;
     if (content.includes("permiso") || content.includes("permit")) return FORMAT_CATEGORIES.WORK_PERMIT;
-    if (content.includes("checklist") || content.includes("verificaciÃ³n")) return FORMAT_CATEGORIES.CHECKLIST;
-    if (content.includes("bitÃ¡cora") || content.includes("logbook")) return FORMAT_CATEGORIES.LOGBOOK;
-    if (content.includes("epp") || content.includes("protecciÃ³n")) return FORMAT_CATEGORIES.EPP_DELIVERY;
-    if (content.includes("capacitaciÃ³n") || content.includes("training")) return FORMAT_CATEGORIES.TRAINING;
+    if (content.includes("checklist") || content.includes("verificación")) return FORMAT_CATEGORIES.CHECKLIST;
+    if (content.includes("bitácora") || content.includes("logbook")) return FORMAT_CATEGORIES.LOGBOOK;
+    if (content.includes("epp") || content.includes("protección")) return FORMAT_CATEGORIES.EPP_DELIVERY;
+    if (content.includes("capacitación") || content.includes("training")) return FORMAT_CATEGORIES.TRAINING;
     if (content.includes("asistencia") || content.includes("attendance")) return FORMAT_CATEGORIES.ATTENDANCE;
     if (content.includes("reporte diario") || content.includes("daily report")) return FORMAT_CATEGORIES.DAILY_REPORT;
-    if (content.includes("fotogrÃ¡fico") || content.includes("photo")) return FORMAT_CATEGORIES.PHOTO_REPORT;
+    if (content.includes("fotográfico") || content.includes("photo")) return FORMAT_CATEGORIES.PHOTO_REPORT;
     
     return FORMAT_CATEGORIES.OTHER;
   }
 
   /**
-   * Extrae metadata del Excel (nombre, versiÃ³n, responsable, etc)
+   * Extrae metadata del Excel (nombre, versión, responsable, etc)
    */
   function extractMetadata(data) {
     const metadata = {
@@ -303,10 +303,10 @@
       if (rowStr.includes("nombre") || rowStr.includes("format")) {
         metadata.formatName = String(row[1] || "").trim();
       }
-      if (rowStr.includes("cÃ³digo") || rowStr.includes("code")) {
+      if (rowStr.includes("código") || rowStr.includes("code")) {
         metadata.formatCode = String(row[1] || "").trim();
       }
-      if (rowStr.includes("versiÃ³n") || rowStr.includes("version")) {
+      if (rowStr.includes("versión") || rowStr.includes("version")) {
         metadata.version = String(row[1] || "").trim();
       }
       if (rowStr.includes("responsable") || rowStr.includes("responsible")) {
@@ -330,14 +330,14 @@
       score: 100
     };
 
-    // Validar que no estÃ© vacÃ­o
+    // Validar que no esté vacío
     if (!data || data.length === 0) {
-      validation.errors.push("Archivo Excel vacÃ­o");
+      validation.errors.push("Archivo Excel vacío");
       validation.score = 0;
       return validation;
     }
 
-    // Validar cantidad mÃ­nima de filas
+    // Validar cantidad mínima de filas
     if (data.length < 3) {
       validation.warnings.push("El formato tiene muy pocas filas. Se recomienda al menos 3 filas.");
       validation.score -= 10;
@@ -346,11 +346,11 @@
     // Validar si tiene encabezados claros
     const firstRow = data[0] || [];
     if (firstRow.length === 0) {
-      validation.errors.push("Primera fila vacÃ­a - se esperan encabezados");
+      validation.errors.push("Primera fila vacía - se esperan encabezados");
       validation.score -= 30;
     }
 
-    // Advertencias sobre diseÃ±o
+    // Advertencias sobre diseño
     let mergedCells = 0;
     let emptyColumns = 0;
     
@@ -366,14 +366,14 @@
     }
 
     if (emptyColumns > 0) {
-      validation.warnings.push(`Se detectaron ${emptyColumns} columna(s) vacÃ­a(s). Considere eliminarlas.`);
+      validation.warnings.push(`Se detectaron ${emptyColumns} columna(s) vacía(s). Considere eliminarlas.`);
       validation.score -= 5;
     }
 
     // Validar que tenga al menos un campo
     const nonEmptyCells = data.flat().filter(cell => cell && String(cell).trim().length > 0).length;
     if (nonEmptyCells < 3) {
-      validation.errors.push("Formato con muy pocos campos vÃ¡lidos");
+      validation.errors.push("Formato con muy pocos campos válidos");
       validation.score -= 40;
     }
 
@@ -395,7 +395,7 @@
     }
 
     if (!formatData.category) {
-      errors.push("La categorÃ­a del formato es obligatoria");
+      errors.push("La categoría del formato es obligatoria");
     }
 
     if (!formatData.fields || formatData.fields.length === 0) {
@@ -410,7 +410,7 @@
     }
 
     if (!formatData.version || formatData.version.trim().length === 0) {
-      warnings.push("Se recomienda especificar una versiÃ³n para el formato");
+      warnings.push("Se recomienda especificar una versión para el formato");
     }
 
     const uniqueFieldNames = new Set(formatData.fields.map(f => f.name));
@@ -436,7 +436,7 @@
   }
 
   async function legacySaveFormat(formatData) {
-    if (!legacyStorage) throw new Error("MÃ³dulo no inicializado");
+    if (!legacyStorage) throw new Error("Módulo no inicializado");
     
     // Validar
     const validation = validateFormat(formatData);
@@ -457,7 +457,7 @@
           description: formatData.description || "",
           category_id: formatData.category,
           format_code: formatData.formatCode || "",
-          format_type: formatData.formatType || "EstÃ¡ndar",
+          format_type: formatData.formatType || "Estándar",
           version: formatData.version || "1.0",
           status: formatData.status || FORMAT_STATUS.DRAFT,
           vigency_start: formatData.vigencyStart || new Date().toISOString().split("T")[0],
@@ -503,7 +503,7 @@
         if (fieldsError) throw fieldsError;
       }
 
-      // Crear versiÃ³n inicial
+      // Crear versión inicial
       await legacyStorage
         .from("format_versions")
         .insert({
@@ -511,7 +511,7 @@
           format_id: formatId,
           version_number: formatData.version || "1.0",
           version_date: new Date().toISOString().split("T")[0],
-          changelog: "VersiÃ³n inicial",
+          changelog: "Versión inicial",
           changed_by: "system",
           payload: formatData
         });
@@ -525,7 +525,7 @@
   }
 
   /**
-   * Obtiene un formato especÃ­fico
+   * Obtiene un formato específico
    */
   async function getFormat(formatId) {
     if (!storage?.getFormat) return {success:true,data:null,source:"unavailable"};
@@ -533,7 +533,7 @@
   }
 
   async function legacyGetFormat(formatId) {
-    if (!legacyStorage) throw new Error("MÃ³dulo no inicializado");
+    if (!legacyStorage) throw new Error("Módulo no inicializado");
 
     try {
       const { data, error } = await legacyStorage
@@ -561,7 +561,7 @@
   }
 
   async function legacyListFormats(filters = {}) {
-    if (!legacyStorage) throw new Error("MÃ³dulo no inicializado");
+    if (!legacyStorage) throw new Error("Módulo no inicializado");
 
     try {
       let query = legacyStorage
@@ -599,7 +599,7 @@
   }
 
   async function legacyDeleteFormat(formatId) {
-    if (!legacyStorage) throw new Error("MÃ³dulo no inicializado");
+    if (!legacyStorage) throw new Error("Módulo no inicializado");
 
     try {
       const { error } = await legacyStorage
@@ -624,7 +624,7 @@
   }
 
   async function legacyCreateRecord(formatId, capturedData, workId) {
-    if (!legacyStorage) throw new Error("MÃ³dulo no inicializado");
+    if (!legacyStorage) throw new Error("Módulo no inicializado");
 
     try {
       const recordId = crypto.randomUUID();
@@ -655,7 +655,7 @@
   }
 
   async function legacyGetRecord(recordId) {
-    if (!legacyStorage) throw new Error("MÃ³dulo no inicializado");
+    if (!legacyStorage) throw new Error("Módulo no inicializado");
 
     try {
       const { data, error } = await legacyStorage
@@ -681,7 +681,7 @@
   }
 
   async function legacyUpdateRecord(recordId, updates) {
-    if (!legacyStorage) throw new Error("MÃ³dulo no inicializado");
+    if (!legacyStorage) throw new Error("Módulo no inicializado");
 
     try {
       const { error } = await legacyStorage
@@ -702,7 +702,7 @@
   }
 
   /**
-   * Exporta un registro a PDF (bÃ¡sico - requiere librerÃ­a adicional)
+   * Exporta un registro a PDF (básico - requiere librería adicional)
    */
   async function exportRecordToPDF(recordId) {
     return {success:false,error:"Exportación PDF de formatos dinámicos no implementada en Fase 1.",recordId};
@@ -719,7 +719,7 @@
 
       const format = formatResult.data;
 
-      // Estructura bÃ¡sica para PDF (requiere librerÃ­a jsPDF o similar)
+      // Estructura básica para PDF (requiere librería jsPDF o similar)
       const pdfData = {
         formatName: format.name,
         formatVersion: format.version,
@@ -736,7 +736,7 @@
     }
   }
 
-  // Exportar API pÃºblica
+  // Exportar API pública
   global.GraviDynamicFormats = {
     init,
     FIELD_TYPES,
@@ -745,6 +745,6 @@
     RECORD_STATUS
   };
 
-  console.log("[DynamicFormats] MÃ³dulo cargado. Use GraviDynamicFormats.init() para inicializar.");
+  console.log("[DynamicFormats] Módulo cargado. Use GraviDynamicFormats.init() para inicializar.");
 
 })(window);
