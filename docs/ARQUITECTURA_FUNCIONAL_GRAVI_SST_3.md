@@ -619,6 +619,246 @@ Riesgo actual:
 11. La UI no debe mezclar captura y consulta ejecutiva en el mismo flujo si pertenecen a responsabilidades distintas.
 12. Antes de tocar base de datos, debe existir un mapa entre contrato actual, entidad destino y estrategia de compatibilidad offline.
 
+## 11. Modelo futuro de Evidencias como Entidad Transversal
+
+Las evidencias deben evolucionar de arreglos embebidos dentro de cada payload a una entidad transversal reutilizable. La transicion no debe romper reportes, historicos ni registros actuales; por eso la regla obligatoria es mantener lectura dual entre arrays heredados y la entidad centralizada futura durante todo el periodo de migracion.
+
+### 11.1 Modelo propuesto de entidad evidencia
+
+La entidad `evidencia` representa cualquier archivo, fotografia, imagen, documento o soporte asociado a un registro operativo, documental o normativo.
+
+Responsabilidades de la entidad:
+
+- Identificar de forma unica cada evidencia.
+- Relacionar la evidencia con la obra y con la entidad origen.
+- Separar el archivo fisico de la referencia funcional.
+- Mantener estado de sincronizacion offline/remoto.
+- Permitir snapshots en documentos emitidos sin duplicar el archivo.
+
+### 11.2 Campos minimos
+
+| Campo | Descripcion |
+|---|---|
+| `id` | Identificador unico de la evidencia. |
+| `work_id` | Obra relacionada. |
+| `entity_type` | Tipo de entidad origen: inspeccion, incidencia, cumplimiento, documento, formato dinamico, etc. |
+| `entity_id` | Identificador del registro origen. |
+| `module` | Modulo funcional que genero o vinculo la evidencia. |
+| `file_name` | Nombre original o normalizado del archivo. |
+| `file_type` | Tipo general: imagen, pdf, documento, otro. |
+| `mime_type` | Tipo MIME del archivo. |
+| `storage_path` | Ruta futura en Supabase Storage. |
+| `public_url` / `signed_url` | URL de acceso cuando aplique. |
+| `thumbnail_path` | Ruta de miniatura si se genera. |
+| `comment` | Comentario operativo de la evidencia. |
+| `status` | Estado funcional de la evidencia. |
+| `sync_status` | Estado de sincronizacion offline/remoto. |
+| `created_by` | Usuario que agrego la evidencia. |
+| `created_at` | Fecha de creacion. |
+| `updated_at` | Fecha de ultima actualizacion. |
+| `metadata` | Datos adicionales: ubicacion, criterio NOM, campo dinamico, version, etc. |
+
+### 11.3 Estados sugeridos
+
+Estados funcionales:
+
+- `active`: evidencia vigente.
+- `linked`: evidencia asociada a una entidad origen.
+- `archived`: evidencia conservada por historico/documento.
+- `deleted`: baja logica; no eliminar fisicamente salvo regla administrativa.
+
+Estados de sincronizacion:
+
+- `local`: existe solo en el dispositivo.
+- `pending_upload`: pendiente de subir a Storage.
+- `uploaded`: archivo subido correctamente.
+- `failed`: fallo de subida o sincronizacion.
+- `pending_link`: archivo subido pero relacion pendiente de confirmar.
+- `synced`: evidencia y relacion sincronizadas.
+
+### 11.4 Relaciones con modulos
+
+| Modulo | Relacion propuesta |
+|---|---|
+| Inspecciones | `entity_type=inspection`; multiples evidencias por inspeccion, hallazgo o accion. |
+| Incidencias / Accidentes | `entity_type=incident` o `investigation`; fotos, croquis, condiciones, lesionados, acciones inmediatas. |
+| Cumplimiento normativo | `entity_type=compliance`; metadata con NOM, criterio, revision y responsable. |
+| Documentos | Los documentos emitidos referencian evidencias usadas en el snapshot, sin convertirse en fuente maestra. |
+| Formatos dinamicos | Campos tipo evidencia crean referencias a `evidencia`; `captured_data` guarda IDs y snapshot minimo. |
+
+Relaciones recomendadas:
+
+```text
+evidencia 1..n -> inspeccion
+evidencia 1..n -> incidencia / investigacion
+evidencia 1..n -> cumplimiento criterio
+evidencia 1..n -> documento emitido como snapshot
+evidencia 1..n -> format_record
+```
+
+### 11.5 Compatibilidad con arrays heredados
+
+Actualmente existen evidencias embebidas en arreglos como:
+
+```text
+evidence
+firstAidEvidence
+equipmentEvidence
+incidentEvidence
+entry.evidence
+```
+
+Reglas de compatibilidad:
+
+1. No migrar arrays heredados de golpe.
+2. No eliminar campos `evidence` existentes.
+3. Crear adaptadores que lean ambos formatos:
+   - `evidence_ids` si existe entidad centralizada.
+   - `evidence` si el registro es heredado.
+4. Los reportes historicos deben seguir mostrando evidencias embebidas.
+5. Los nuevos registros podran guardar referencias centralizadas y snapshot minimo.
+6. Al editar un registro heredado, no sobrescribir su arreglo de evidencias salvo migracion explicita.
+
+Snapshot minimo sugerido:
+
+```json
+{
+  "evidence_ids": ["ev_001"],
+  "evidence_snapshot": [
+    {
+      "id": "ev_001",
+      "comment": "Tablero sin proteccion",
+      "created_at": "2026-07-07T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+Regla obligatoria: toda lectura de evidencias debe soportar lectura dual entre arrays heredados y entidad centralizada futura hasta que exista una migracion completa validada.
+
+### 11.6 Estrategia offline
+
+Flujo offline propuesto:
+
+1. El usuario adjunta una evidencia desde un modulo operativo.
+2. El sistema genera `id` local.
+3. El archivo se conserva temporalmente como base64, blob o referencia local compatible con la app actual.
+4. Se crea registro local de evidencia con `sync_status=local` o `pending_upload`.
+5. El registro operativo guarda `evidence_ids` y snapshot minimo cuando aplique.
+6. Al recuperar conexion, la cola sube archivos pendientes.
+7. Si la subida funciona, se actualiza `storage_path` y `sync_status=uploaded`.
+8. Si la relacion con la entidad origen se confirma, se marca `sync_status=synced`.
+9. Si falla, se conserva la evidencia local y se reintenta.
+
+Contratos locales futuros sugeridos:
+
+```text
+gvc-evidencias-v1
+gvc-evidencias-pending-v1
+```
+
+Estos contratos no deben sustituir inmediatamente los arrays actuales. Deben convivir hasta completar migracion y validacion de reportes.
+
+### 11.7 Estrategia futura con Supabase Storage
+
+Bucket recomendado:
+
+```text
+evidencias
+```
+
+Estructura de rutas:
+
+```text
+evidencias/{work_id}/{entity_type}/{entity_id}/{evidence_id}/{filename}
+```
+
+Ejemplos:
+
+```text
+evidencias/obra_123/inspection/insp_456/ev_789/foto-tablero.jpg
+evidencias/obra_123/compliance/nom031/ev_321/evidencia-andamio.jpg
+evidencias/obra_123/dynamic_format_record/rec_555/ev_777/firma.jpg
+```
+
+Reglas futuras:
+
+- Guardar en base de datos el `storage_path`, no depender solo de URL publica.
+- Usar URL firmada cuando el archivo no deba ser publico.
+- La eliminacion normal debe ser logica.
+- La eliminacion fisica debe reservarse para administradores o politicas de retencion.
+- Los documentos emitidos deben conservar snapshot para que el PDF historico no cambie si una evidencia se elimina o actualiza.
+
+Politicas sugeridas:
+
+- Lectura: usuarios autenticados activos.
+- Insercion: usuarios con permiso operativo o administrador.
+- Actualizacion: usuario responsable, rol operativo autorizado o administrador.
+- Eliminacion logica: usuario autorizado o administrador.
+- Eliminacion fisica: solo administrador.
+
+### 11.8 Riesgos
+
+| Riesgo | Impacto |
+|---|---|
+| Duplicidad temporal entre arrays heredados y entidad evidencia | Puede mostrar evidencias duplicadas si no hay adaptador. |
+| Evidencias base64 en localStorage | Puede crecer demasiado el almacenamiento local. |
+| Evidencias antiguas sin `id` | Requieren normalizacion gradual. |
+| Fallos de subida a Storage | El registro operativo puede existir sin archivo remoto. |
+| Reportes historicos | Pueden cambiar si consultan archivo vivo en vez de snapshot. |
+| Formatos dinamicos | Pueden duplicar archivos si guardan evidencia dentro de `captured_data`. |
+| RLS / permisos | Una evidencia visible por error puede exponer informacion sensible. |
+| Migracion incompleta | Puede romper inspecciones, incidencias o cumplimiento anteriores. |
+
+### 11.9 Fases de implementacion
+
+#### Fase E1: contrato documental
+
+- Definir entidad evidencia.
+- Documentar campos, estados y lectura dual.
+- No cambiar codigo ni base de datos.
+
+#### Fase E2: repositorio read-only
+
+- Agregar repositorio futuro `GraviRepositories.evidences`.
+- Leer arrays heredados y entidad futura.
+- No cambiar escrituras.
+
+#### Fase E3: adaptador de evidencias
+
+- Crear funcion de normalizacion.
+- Convertir strings/base64/objetos heredados a una forma comun de lectura.
+- Mantener compatibilidad con reportes actuales.
+
+#### Fase E4: captura nueva con entidad evidencia
+
+- Nuevas evidencias se registran con `id`.
+- Registros operativos guardan `evidence_ids`.
+- Mantener snapshot minimo.
+
+#### Fase E5: cola offline
+
+- Implementar `gvc-evidencias-pending-v1`.
+- Reintentar subidas fallidas.
+- Mostrar estado de sincronizacion.
+
+#### Fase E6: Supabase Storage
+
+- Crear bucket y politicas.
+- Subir archivos desde wrapper seguro.
+- Registrar `storage_path`.
+
+#### Fase E7: documentos y reportes
+
+- PDF y Excel consumen evidencias por adaptador.
+- Documentos emitidos guardan snapshot.
+
+#### Fase E8: migracion gradual
+
+- Migrar arrays heredados bajo demanda.
+- Validar que reportes antiguos sigan mostrando evidencias.
+- Retirar lectura heredada solo cuando no existan datos legacy activos.
+
 ## Estado de cierre de Fase 0
 
 La Fase 0 queda definida como documentacion tecnica. No incluye cambios funcionales, migraciones, modificaciones visuales ni cambios de base de datos.
