@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Preparar el sistema GRAVI para implementación operativa en obra y evolución comercial mediante AXIS, conservando la arquitectura, almacenamiento y funcionalidades existentes.
+Preparar el sistema GRAVI para implementación operativa en obra y evolución modular propia, conservando la arquitectura, almacenamiento y funcionalidades existentes.
 
 ## Mejoras realizadas
 
@@ -43,7 +43,7 @@ Preparar el sistema GRAVI para implementación operativa en obra y evolución co
 
 **Investigación:** trabajador reutilizable, datos personales, domicilio, antigüedad, empleador, contacto, turno, jornada, labor habitual, tiempo previo, lugar, mortalidad, lesión, parte afectada, agente, condición insegura, causas y acciones.
 
-### Preparación para AXIS
+### Preparación modular GRAVI SST
 
 `extensions.js` incorpora un registro estable de módulos, documentos, eventos y espacios de integración. Quedan declarados, sin implementar, los dominios futuros:
 
@@ -85,4 +85,4 @@ Preparar el sistema GRAVI para implementación operativa en obra y evolución co
 3. Crear API versionada y sincronización por obra.
 4. Generar PDF firmado en backend y aplicar control documental central.
 5. Implementar exportación y restauración cifrada.
-6. Incorporar progresivamente los módulos AXIS mediante el registro de extensiones.
+6. Incorporar progresivamente los módulos operativos mediante el registro de extensiones.
