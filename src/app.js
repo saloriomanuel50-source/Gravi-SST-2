@@ -430,6 +430,7 @@ function renderReport(data) {
 }
 function allRecords() { try { return JSON.parse(localStorage.getItem(STORAGE_RECORDS)) || []; } catch { return []; } }
 function records() { const all=allRecords(),workId=localStorage.getItem("gvc-active-work-id");return workId?all.filter(item=>(item.workId||"legacy")===workId):all; }
+function repositoryRecords() { const all=window.GraviRepositories?.records?.list?.() || allRecords(),workId=localStorage.getItem("gvc-active-work-id");return workId?all.filter(item=>(item.workId||"legacy")===workId):all; }
 function finish(data) {
   data.workId = localStorage.getItem("gvc-active-work-id") || data.workId || "legacy";
   const all = allRecords().filter(x => x.id !== data.id); all.unshift(data); localStorage.setItem(STORAGE_RECORDS, JSON.stringify(all));
@@ -442,7 +443,7 @@ function finish(data) {
 }
 function prepareStandardReport() { window.systemDownloadData = null; $("#editButton").hidden = false; }
 function renderRecent() {
-  const items = records().slice(0, 3); const el = $("#recentList");
+  const items = repositoryRecords().slice(0, 3); const el = $("#recentList");
   el.className = items.length ? "history-list" : "empty-state";
   el.innerHTML = items.length ? items.map(historyMarkup).join("") : "Todavía no hay inspecciones finalizadas."; bindOpenButtons(el);
 }
@@ -454,8 +455,8 @@ function historyMarkup(x) {
   const title = isIncident ? `Reporte diario · ${escapeHtml(x.location || "Sin ubicación")}` : isFirstAid ? `Botiquín · ${escapeHtml(x.location || "Sin ubicación")}` : equipment ? `${escapeHtml(equipment.title)} · ${escapeHtml(x.fields?.number || "Sin número")}` : `Extintores · ${escapeHtml(x.project || "Inspección sin proyecto")}`;
   return `<article class="history-item"><div><h3>${title}</h3><p>${escapeHtml(x.date)} · ${escapeHtml(x.location)} · ${detail}</p></div><div><button class="secondary" data-open="${x.id}">Ver reporte</button></div></article>`;
 }
-function renderHistory() { const all=records(); $("#historyList").innerHTML = all.length ? all.map(historyMarkup).join("") : '<div class="empty-state">No hay registros finalizados.</div>'; bindOpenButtons($("#historyList")); }
-function bindOpenButtons(root) { $$('[data-open]', root).forEach(b => b.onclick = () => { const data=records().find(x=>x.id===b.dataset.open); if(data){currentRecord=data;if(data.type === "incident") renderIncidentReport(data);else if(data.type === "firstAid") renderFirstAidReport(data); else if(equipmentConfigs[data.type]) renderEquipmentReport(data); else renderReport(data);showView("reportView");} }); }
+function renderHistory() { const all=repositoryRecords(); $("#historyList").innerHTML = all.length ? all.map(historyMarkup).join("") : '<div class="empty-state">No hay registros finalizados.</div>'; bindOpenButtons($("#historyList")); }
+function bindOpenButtons(root) { $$('[data-open]', root).forEach(b => b.onclick = () => { const data=repositoryRecords().find(x=>x.id===b.dataset.open); if(data){currentRecord=data;if(data.type === "incident") renderIncidentReport(data);else if(data.type === "firstAid") renderFirstAidReport(data); else if(equipmentConfigs[data.type]) renderEquipmentReport(data); else renderReport(data);showView("reportView");} }); }
 function validateStep(step) {
   const invalid = $$("[required]", $(`.form-step[data-step="${step}"]`)).find(el => !el.checkValidity());
   if (invalid) { invalid.reportValidity(); invalid.focus(); return false; }
