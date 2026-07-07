@@ -491,7 +491,7 @@
         </div>
         <div class="format-card-actions">
           <button type="button" class="btn-primary" onclick="viewFormatDetails('${format.id}')">Ver</button>
-          <button type="button" class="btn-secondary" onclick="createRecordFromFormat('${format.id}')">Usar</button>
+          <button type="button" class="btn-secondary" onclick="createRecordFromFormat('${format.id}')">Preparar registro</button>
         </div>
       </div>
     `).join("");

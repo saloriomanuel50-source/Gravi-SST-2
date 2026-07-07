@@ -136,23 +136,24 @@
     </section>
     <section id="homeView" class="view active">
       <div class="hero">
-        <p class="eyebrow">OPERACIÃ“N Y SEGURIDAD</p>
-        <h1>Â¿QuÃ© necesitas registrar?</h1>
-        <p>Selecciona una actividad. Los avances se guardan automÃ¡ticamente en este dispositivo.</p>
+        <p class="eyebrow">DASHBOARD DE OBRA</p>
+        <h1>Consulta ejecutiva</h1>
+        <p>Revisa indicadores y entra al modulo operativo correspondiente cuando necesites capturar informacion.</p>
       </div>
       <section id="dashboardKpis" class="dashboard-kpis" aria-label="Indicadores de la obra"></section>
       <section id="dashboardInsights" class="dashboard-insights" aria-label="Tendencias y estadÃ­sticas"></section>
       <div class="module-grid">
-        <button class="module-card incident" id="incidentButton" type="button">
-          <span class="module-icon">!</span><span><strong>Reporte diario de seguridad</strong><small>Eventos relevantes, personas, acciones y evidencias</small></span><b>Disponible</b>
+        <button class="module-card incident" type="button" data-phase3-nav="inspections">
+          <span class="module-icon">!</span><span><strong>Ir a Operaciones</strong><small>Reporte diario, inspecciones, equipos y formatos</small></span><b>Ver procesos</b>
         </button>
         <button class="module-card attendance" id="attendanceButton" type="button">
-          <span class="module-icon">âœ“</span><span><strong>Tomar asistencia</strong><small>Registro semanal por contratista y trabajador</small></span><b>Disponible</b>
+          <span class="module-icon">A</span><span><strong>Asistencia</strong><small>Ir al modulo operativo de presencia diaria</small></span><b>Operacion</b>
         </button>
         <button class="module-card inspection" id="inspectionButton" type="button">
-          <span class="module-icon">âŒ•</span><span><strong>Operaciones</strong><small>Inspecciones, botiquines, extintores, equipos y formatos</small></span><b>Disponible</b>
+          <span class="module-icon">O</span><span><strong>Operaciones</strong><small>Ir al hub operativo de inspecciones, equipos y formatos</small></span><b>Operacion</b>
         </button>
       </div>
+      <button id="incidentButton" type="button" hidden aria-hidden="true"></button>
       <section class="work-modules"><p class="eyebrow">ADMINISTRACIÃ“N DE LA OBRA</p><div id="workModuleGrid" class="management-grid"></div></section>
       <section class="recent-panel">
         <div><p class="eyebrow">ACTIVIDAD RECIENTE</p><h2>Registros guardados</h2></div>
