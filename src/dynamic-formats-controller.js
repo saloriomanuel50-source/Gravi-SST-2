@@ -31,6 +31,7 @@
     const uploadBtn = document.getElementById("uploadFormatButton");
     if (uploadBtn) {
       uploadBtn.addEventListener("click", () => {
+        if (uploadBtn.disabled) return;
         document.getElementById("uploadFormatModal").showModal();
       });
     }
@@ -469,8 +470,8 @@
     if (formats.length === 0) {
       container.innerHTML = `
         <div style="grid-column: 1/-1; padding: 40px; text-align: center; color: #999;">
-          <p style="font-size: 18px; margin: 0 0 10px 0;">📋 No hay formatos cargados</p>
-          <p>Comienza cargando tu primer formato en Excel</p>
+          <p style="font-size: 18px; margin: 0 0 10px 0;">Documentos / formatos en preparación</p>
+          <p>Este módulo no está habilitado para captura productiva. Usa los módulos operativos existentes para registrar información.</p>
         </div>
       `;
       return;
@@ -491,7 +492,7 @@
         </div>
         <div class="format-card-actions">
           <button type="button" class="btn-primary" onclick="viewFormatDetails('${format.id}')">Ver</button>
-          <button type="button" class="btn-secondary" onclick="createRecordFromFormat('${format.id}')">Preparar registro</button>
+          <button type="button" class="btn-secondary" disabled title="Módulo en preparación">En preparación</button>
         </div>
       </div>
     `).join("");
@@ -579,6 +580,8 @@
    * Abre el formulario para crear un registro desde un formato
    */
   async function createRecordFromFormat(formatId) {
+    showSuccess("Módulo en preparación. Los formatos dinámicos no están habilitados para captura productiva.");
+    return;
     const result = await dynamicFormats.getFormat(formatId);
 
     if (!result.success) {

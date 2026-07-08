@@ -1,13 +1,13 @@
-<!-- VISTA: ADMINISTRACIÓN DE FORMATOS DINÁMICOS -->
+<!-- VISTA: DOCUMENTOS Y FORMATOS EN PREPARACION -->
 <section id="dynamicFormatsView" class="view" hidden>
   <div class="view-header">
     <div class="view-title">
-      <h1>Formatos Dinámicos</h1>
-      <p>Administra plantillas de Excel y genera registros personalizados</p>
+      <h1>Documentos</h1>
+      <p>Módulo en preparación. Los formatos dinámicos no están habilitados para captura productiva.</p>
     </div>
     <div class="view-actions">
-      <button type="button" class="primary" id="uploadFormatButton">
-        <span>↓</span> Cargar nuevo formato
+      <button type="button" class="primary" id="uploadFormatButton" disabled title="Módulo en preparación">
+        <span>↓</span> Módulo en preparación
       </button>
     </div>
   </div>
@@ -54,7 +54,7 @@
       <div class="upload-zone" id="excelUploadZone">
         <input type="file" id="excelFileInput" accept=".xlsx,.xls" hidden>
         <div class="upload-prompt">
-          <span>📄</span>
+          <span>ð</span>
           <p>Arrastra aquí tu archivo Excel</p>
           <p><small>o haz clic para seleccionar</small></p>
           <p><small style="color: #999;">Solo .xlsx o .xls</small></p>
@@ -156,8 +156,8 @@
 
     <div class="modal-footer">
       <button type="button" class="secondary" onclick="this.closest('dialog').close()">Cancelar</button>
-      <button type="button" class="primary" id="proceedToPreviewBtn" hidden>Continuar a vista previa</button>
-      <button type="button" class="primary" id="saveFormatBtn" hidden>Guardar formato</button>
+      <button type="button" class="primary" id="proceedToPreviewBtn" hidden disabled>Continuar a vista previa</button>
+      <button type="button" class="primary" id="saveFormatBtn" hidden disabled>Guardar formato</button>
     </div>
   </dialog>
 
@@ -188,7 +188,7 @@
 
     <div class="modal-footer">
       <button type="button" class="secondary" onclick="this.closest('dialog').close()">Cancelar</button>
-      <button type="button" class="primary" id="confirmPreviewBtn">Guardar formato</button>
+      <button type="button" class="primary" id="confirmPreviewBtn" disabled>Guardar formato</button>
     </div>
   </dialog>
 
@@ -265,8 +265,8 @@
 
     <div class="modal-footer">
       <button type="button" class="secondary" onclick="this.closest('dialog').close()">Cancelar</button>
-      <button type="button" class="secondary" id="saveDraftBtn">Guardar borrador</button>
-      <button type="button" class="primary" id="submitRecordBtn">Preparar registro</button>
+      <button type="button" class="secondary" id="saveDraftBtn" disabled>Guardar borrador</button>
+      <button type="button" class="primary" id="submitRecordBtn" disabled>Preparar registro</button>
     </div>
   </dialog>
 
