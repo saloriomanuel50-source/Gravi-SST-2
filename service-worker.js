@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_NAME = "gravi-sst-v2-shell-v11";
+const CACHE_NAME = "gravi-sst-v2-shell-v12";
 const APP_SHELL = [
   "./",
   "./index.html",
