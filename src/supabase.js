@@ -7,6 +7,8 @@
   const SESSION_KEY = "gvc-supabase-session-v1";
   const DYNAMIC_FORMATS_CACHE_KEY = "gvc-dynamic-formats-v1";
   const DYNAMIC_FORMATS_PENDING_KEY = "gvc-dynamic-formats-pending-v1";
+  const USER_PERMISSIONS_KEY = "gvc-user-permissions-v1";
+  const PENDING_INVITE_PERMISSIONS_KEY = "gvc-user-permissions-pending-invites-v1";
   const TABLES = {
     developments: "desarrollos",
     works: "obras",
@@ -30,6 +32,21 @@
   let lastStatus = {state:"cached",message:"Caché local"};
   let currentSession = null;
   let currentProfile = null;
+  const PERMISSION_GROUPS = Object.freeze([
+    {id:"catalogs",label:"Cat\u00e1logos",permissions:[["works.view","Ver desarrollos y obras"],["developments.create","Crear desarrollos"],["developments.edit","Editar desarrollos"],["developments.archive","Archivar desarrollos"],["works.create","Crear obras"],["works.edit","Editar obras"],["works.archive","Archivar obras"]]},
+    {id:"workforce",label:"Fuerza de trabajo",permissions:[["contractors.view","Ver contratistas"],["contractors.create","Crear contratistas"],["contractors.edit","Editar contratistas"],["contractors.archive","Archivar contratistas"],["workers.view","Ver trabajadores"],["workers.create","Crear trabajadores"],["workers.edit","Editar trabajadores"],["workers.archive","Archivar trabajadores"],["visitors.view","Ver visitantes"],["visitors.register","Registrar visitantes"]]},
+    {id:"operation",label:"Operaci\u00f3n",permissions:[["attendance.view","Ver asistencia"],["attendance.register","Registrar asistencia"],["attendance.edit","Editar asistencia"],["operations.view","Ver operaciones"],["inspections.create","Crear inspecciones"],["inspections.edit","Editar inspecciones"],["incidents.view","Ver incidencias"],["incidents.create","Crear incidencias"],["incidents.edit","Editar incidencias"]]},
+    {id:"compliance",label:"Cumplimiento",permissions:[["compliance.view","Ver cumplimiento"],["compliance.edit","Editar cumplimiento"],["compliance.monthly_report","Generar reporte mensual"],["compliance.nom_matrix","Administrar matriz NOM"]]},
+    {id:"intelligence",label:"Inteligencia",permissions:[["documents.view","Ver documentos"],["documents.generate","Generar documentos/PDF"],["reports.view","Ver reportes"],["reports.generate","Generar reportes"],["histories.global","Ver hist\u00f3ricos generales"],["histories.work","Ver hist\u00f3ricos de obra"],["audit.view","Ver bit\u00e1cora"]]},
+    {id:"administration",label:"Administraci\u00f3n",permissions:[["users.invite","Invitar usuarios"],["users.edit","Editar usuarios"],["users.change_roles","Cambiar roles"],["users.manage_permissions","Editar permisos"],["users.deactivate","Desactivar usuarios"]]}
+  ]);
+  const ALL_PERMISSION_KEYS = PERMISSION_GROUPS.flatMap(group => group.permissions.map(item => item[0]));
+  const READ_PERMISSION_KEYS = ALL_PERMISSION_KEYS.filter(key => key.endsWith(".view") || key.startsWith("histories.") || key === "audit.view" || key === "works.view");
+  const ROLE_PERMISSION_KEYS = Object.freeze({
+    "Administrador":ALL_PERMISSION_KEYS,
+    "Supervisor SST":["works.view","contractors.view","contractors.create","contractors.edit","workers.view","workers.create","workers.edit","visitors.view","visitors.register","attendance.view","attendance.register","attendance.edit","operations.view","inspections.create","inspections.edit","incidents.view","incidents.create","incidents.edit","compliance.view","compliance.edit","compliance.monthly_report","documents.view","documents.generate","reports.view","reports.generate","histories.work","audit.view"],
+    "Consulta":READ_PERMISSION_KEYS
+  });
 
   function readJson(key, fallback) {
     try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
@@ -42,6 +59,88 @@
 
   function clone(value) {
     return JSON.parse(JSON.stringify(value));
+  }
+
+  function permissionDefaults(role) {
+    const allowed = new Set(ROLE_PERMISSION_KEYS[role] || ROLE_PERMISSION_KEYS.Consulta);
+    return Object.fromEntries(ALL_PERMISSION_KEYS.map(key => [key, allowed.has(key)]));
+  }
+
+  function localPermissionStore() {
+    return readJson(USER_PERMISSIONS_KEY, {});
+  }
+
+  function pendingInvitePermissionStore() {
+    return readJson(PENDING_INVITE_PERMISSIONS_KEY, {});
+  }
+
+  function hasRemotePermissionFields(profile={}) {
+    return Object.prototype.hasOwnProperty.call(profile, "permissions_mode") || Object.prototype.hasOwnProperty.call(profile, "custom_permissions") ||
+      Object.prototype.hasOwnProperty.call(profile.payload || {}, "permissions_mode") || Object.prototype.hasOwnProperty.call(profile.payload || {}, "custom_permissions");
+  }
+
+  function fallbackPermissionSettingsFor(profile={}) {
+    const local = profile.user_id ? localPermissionStore()[profile.user_id] : null;
+    const pending = profile.email ? pendingInvitePermissionStore()[normalized(profile.email)] : null;
+    return local || pending || null;
+  }
+
+  function permissionSettingsFor(profile={}) {
+    const fallback = fallbackPermissionSettingsFor(profile);
+    const mode = hasRemotePermissionFields(profile) ? (profile.permissions_mode || profile.payload?.permissions_mode || "role-default") : (fallback?.permissions_mode || "role-default");
+    const custom = hasRemotePermissionFields(profile) ? (profile.custom_permissions || profile.payload?.custom_permissions || {}) : (fallback?.custom_permissions || {});
+    return {permissions_mode:mode === "custom" ? "custom" : "role-default", custom_permissions:{...custom}};
+  }
+
+  function effectivePermissions(profile=currentProfile) {
+    if (!profile) return permissionDefaults("Consulta");
+    if (profile.role === "Administrador") return permissionDefaults("Administrador");
+    const settings = permissionSettingsFor(profile);
+    if (settings.permissions_mode === "custom") return {...permissionDefaults(profile.role), ...settings.custom_permissions};
+    return permissionDefaults(profile.role);
+  }
+
+  function canPermission(permissionKey, profile=currentProfile) {
+    return Boolean(effectivePermissions(profile)[permissionKey]);
+  }
+
+  function normalizePermissionSettings(settings={}) {
+    return {
+      permissions_mode:settings.permissions_mode === "custom" ? "custom" : "role-default",
+      custom_permissions:{...(settings.custom_permissions || {})}
+    };
+  }
+
+  function removeMigratedLocalPermissions(userId="", email="") {
+    const local = localPermissionStore();
+    const pending = pendingInvitePermissionStore();
+    if (userId && local[userId]) { delete local[userId]; writeJson(USER_PERMISSIONS_KEY, local); }
+    const clean = normalized(email);
+    if (clean && pending[clean]) { delete pending[clean]; writeJson(PENDING_INVITE_PERMISSIONS_KEY, pending); }
+  }
+
+  function saveLocalUserPermissions(userId, settings={}) {
+    if (!userId) return;
+    const normalizedSettings = normalizePermissionSettings(settings);
+    const store = localPermissionStore();
+    store[userId] = {
+      ...normalizedSettings,
+      updated_at:new Date().toISOString()
+    };
+    writeJson(USER_PERMISSIONS_KEY, store);
+    if (currentProfile?.user_id === userId) currentProfile = {...currentProfile, ...store[userId]};
+  }
+
+  function savePendingInvitePermissions(email, settings={}) {
+    const clean = normalized(email);
+    if (!clean) return;
+    const normalizedSettings = normalizePermissionSettings(settings);
+    const store = pendingInvitePermissionStore();
+    store[clean] = {
+      ...normalizedSettings,
+      updated_at:new Date().toISOString()
+    };
+    writeJson(PENDING_INVITE_PERMISSIONS_KEY, store);
   }
 
   function normalized(value) {
@@ -116,8 +215,8 @@
     const profile = rows?.[0];
     if (!profile) throw new Error("Tu cuenta no tiene un perfil GRAVI asignado.");
     if (!profile.active) throw new Error("Tu acceso está suspendido. Contacta al administrador.");
-    currentProfile = profile;
-    currentSession.gravi_profile = profile;
+    currentProfile = {...profile, ...permissionSettingsFor(profile)};
+    currentSession.gravi_profile = currentProfile;
     saveSession(currentSession);
     return profile;
   }
@@ -553,21 +652,46 @@
   }
 
   async function listProfiles() {
-    if (!can("admin-write")) throw new Error("Solo un Administrador puede consultar usuarios.");
-    return request(TABLES.profiles, {query:"?select=*&order=full_name.asc"});
+    if (!can("admin-write") && !canPermission("users.edit") && !canPermission("users.manage_permissions") && !canPermission("users.invite")) throw new Error("Tu rol no permite consultar usuarios.");
+    const rows = await request(TABLES.profiles, {query:"?select=*&order=full_name.asc"});
+    const migrated = [];
+    for (const profile of rows) {
+      const fallback = fallbackPermissionSettingsFor(profile);
+      if (fallback && can("admin-write")) {
+        const settings = normalizePermissionSettings(fallback);
+        try {
+          await request(TABLES.profiles, {method:"PATCH",query:`?user_id=eq.${encodeURIComponent(profile.user_id)}`,headers:{"Prefer":"return=minimal"},body:{...settings,updated_at:new Date().toISOString()},returnMinimal:true});
+          removeMigratedLocalPermissions(profile.user_id, profile.email);
+          migrated.push({...profile, ...settings});
+          continue;
+        } catch (error) {
+          console.warn("No fue posible migrar permisos locales a Supabase.", error);
+        }
+      }
+      const settings = permissionSettingsFor(profile);
+      migrated.push({...profile, ...settings});
+    }
+    return migrated;
   }
 
-  async function updateProfile(userId, role, active) {
-    if (!can("admin-write")) throw new Error("Solo un Administrador puede modificar usuarios.");
+  async function updateProfile(userId, role, active, permissionSettings=null) {
+    if (!can("admin-write") && !canPermission("users.edit")) throw new Error("Tu rol no permite modificar usuarios.");
+    if (permissionSettings && !can("admin-write") && !canPermission("users.manage_permissions")) throw new Error("Tu rol no permite editar permisos.");
     if (userId === currentSession.user.id && (role !== "Administrador" || !active)) throw new Error("No puedes retirar tu propio acceso de Administrador.");
-    await request(TABLES.profiles, {method:"PATCH",query:`?user_id=eq.${encodeURIComponent(userId)}`,headers:{"Prefer":"return=minimal"},body:{role,active,updated_at:new Date().toISOString()},returnMinimal:true});
+    const settings = permissionSettings ? normalizePermissionSettings(permissionSettings) : null;
+    const body = {role,active,updated_at:new Date().toISOString(),...(settings || {})};
+    await request(TABLES.profiles, {method:"PATCH",query:`?user_id=eq.${encodeURIComponent(userId)}`,headers:{"Prefer":"return=minimal"},body,returnMinimal:true});
+    removeMigratedLocalPermissions(userId);
+    if (currentProfile?.user_id === userId) currentProfile = {...currentProfile, ...body};
   }
 
-  async function inviteUser({email,fullName,role}) {
-    if (!can("admin-write")) throw new Error("Solo un Administrador puede invitar usuarios.");
-    const response = await fetch("./api/invite-user", {method:"POST",headers:{"Authorization":`Bearer ${currentSession.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({email,fullName,role})});
+  async function inviteUser({email,fullName,role,permissions=null}) {
+    if (!can("admin-write") && !canPermission("users.invite")) throw new Error("Tu rol no permite invitar usuarios.");
+    const settings = permissions ? normalizePermissionSettings(permissions) : {permissions_mode:"role-default", custom_permissions:{}};
+    const response = await fetch("./api/invite-user", {method:"POST",headers:{"Authorization":`Bearer ${currentSession.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({email,fullName,role,permissions:settings})});
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || "No fue posible enviar la invitación.");
+    removeMigratedLocalPermissions("", email);
     return payload;
   }
 
@@ -665,7 +789,10 @@
 
   global.GraviSupabase = {
     bootstrap, login, logout, scheduleSystemSync, syncSystemData, upsertRecord, syncRecords,
-    listProfiles, updateProfile, inviteUser, can, dynamicFormats,
+    listProfiles, updateProfile, inviteUser, can, canPermission, dynamicFormats,
+    permissionGroups:() => clone(PERMISSION_GROUPS),
+    roleDefaultPermissions:role => permissionDefaults(role),
+    getProfilePermissions:profile => ({settings:permissionSettingsFor(profile || currentProfile || {}), effective:effectivePermissions(profile || currentProfile || {})}),
     isConfigured:() => configured, isAuthenticated:() => Boolean(currentSession && currentProfile),
     getStatus:() => ({...lastStatus}), getUser:() => currentSession?.user || null,
     getProfile:() => currentProfile ? {...currentProfile} : null

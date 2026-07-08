@@ -15,13 +15,20 @@ module.exports = async function handler(request, response) {
     if (!userResponse.ok) return response.status(401).json({error:"Sesión inválida."});
     const caller = await userResponse.json();
 
-    const profileResponse = await fetch(`${url}/rest/v1/perfiles_usuario?user_id=eq.${encodeURIComponent(caller.id)}&select=role,active`, {headers:{apikey:serviceKey,Authorization:`Bearer ${serviceKey}`}});
+    const profileResponse = await fetch(`${url}/rest/v1/perfiles_usuario?user_id=eq.${encodeURIComponent(caller.id)}&select=role,active,permissions_mode,custom_permissions`, {headers:{apikey:serviceKey,Authorization:`Bearer ${serviceKey}`}});
     const profiles = profileResponse.ok ? await profileResponse.json() : [];
-    if (profiles[0]?.role !== "Administrador" || !profiles[0]?.active) return response.status(403).json({error:"Solo un Administrador puede invitar usuarios."});
+    const callerProfile = profiles[0] || {};
+    const callerCanInvite = callerProfile.role === "Administrador" || (callerProfile.permissions_mode === "custom" && callerProfile.custom_permissions?.["users.invite"] === true);
+    if (!callerProfile.active || !callerCanInvite) return response.status(403).json({error:"Tu perfil no permite invitar usuarios."});
 
-    const {email,fullName,role} = request.body || {};
+    const {email,fullName,role,permissions={}} = request.body || {};
     const roles = ["Administrador","Supervisor SST","Consulta"];
     if (!email || !fullName || !roles.includes(role)) return response.status(400).json({error:"Nombre, correo y rol válido son obligatorios."});
+
+    const permissionsMode = permissions.permissions_mode === "custom" ? "custom" : "role-default";
+    const customPermissions = permissions.custom_permissions && typeof permissions.custom_permissions === "object" && !Array.isArray(permissions.custom_permissions)
+      ? permissions.custom_permissions
+      : {};
 
     const inviteResponse = await fetch(`${url}/auth/v1/invite`, {
       method:"POST",
@@ -35,7 +42,7 @@ module.exports = async function handler(request, response) {
     await fetch(`${url}/rest/v1/perfiles_usuario?on_conflict=user_id`, {
       method:"POST",
       headers:{apikey:serviceKey,Authorization:`Bearer ${serviceKey}`,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal"},
-      body:JSON.stringify([{user_id:userId,email:String(email).trim(),full_name:String(fullName).trim(),role,active:true,updated_at:new Date().toISOString()}])
+      body:JSON.stringify([{user_id:userId,email:String(email).trim(),full_name:String(fullName).trim(),role,active:true,permissions_mode:permissionsMode,custom_permissions:customPermissions,updated_at:new Date().toISOString()}])
     });
     return response.status(200).json({ok:true,userId});
   } catch (error) {
