@@ -77,7 +77,7 @@ const expectedIndexReferences = [
   "./src/styles/phase3.css?v=1",
   "./src/styles/phase4.css?v=1",
   "./src/styles/phase5.css?v=1",
-  "./src/styles/phase5-2.css?v=11",
+  "./src/styles/phase5-2.css?v=12",
   "./src/supabase.js",
   "./src/bootstrap.js",
   "./assets/gravi-sst-logo-dark.png",
@@ -93,7 +93,7 @@ for (const reference of ["./src/app.js", "./src/corporate-documents.js", "./src/
 }
 
 const serviceWorker = read("service-worker.js");
-for (const reference of ["./src/app.js", "./src/supabase.js", "./src/bootstrap.js", "./src/styles/phase5-2.css?v=11", "./assets/gravi-sst-logo-dark.png", "./assets/gravi-sst-login-panel.png", "./assets/gravi-sst-splash.png", "./assets/pwa-icon-192.png"]) {
+for (const reference of ["./src/app.js", "./src/supabase.js", "./src/bootstrap.js", "./src/styles/phase5-2.css?v=12", "./assets/gravi-sst-logo-dark.png", "./assets/gravi-sst-login-panel.png", "./assets/gravi-sst-splash.png", "./assets/pwa-icon-192.png"]) {
   if (!serviceWorker.includes(reference)) fail(`service-worker.js no precachea ${reference}`);
 }
 

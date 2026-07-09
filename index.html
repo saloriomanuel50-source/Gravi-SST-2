@@ -12,8 +12,8 @@
   <meta name="format-detection" content="telephone=no">
   <meta name="description" content="Sistema GRAVI de seguridad, salud, inspecciones y cumplimiento para obra.">
   <title>GRAVI SST</title>
-  <script>window.GRAVI_BUILD_VERSION = "2026-07-10-weather-autocomplete";</script>
-  <link rel="manifest" href="./manifest.json?v=2026-07-10-weather-autocomplete">
+  <script>window.GRAVI_BUILD_VERSION = "2026-07-10-work-location-map";</script>
+  <link rel="manifest" href="./manifest.json?v=2026-07-10-work-location-map">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/pwa-icon-192.png">
   <link rel="apple-touch-icon" href="./assets/pwa-icon-192.png">
   <link rel="stylesheet" href="./src/styles/styles.css?v=2026-07-07-hotfix-charset">
@@ -24,7 +24,8 @@
   <link rel="stylesheet" href="./src/styles/phase3.css?v=1">
   <link rel="stylesheet" href="./src/styles/phase4.css?v=1">
   <link rel="stylesheet" href="./src/styles/phase5.css?v=1">
-  <link rel="stylesheet" href="./src/styles/phase5-2.css?v=11">
+  <link rel="stylesheet" href="./src/styles/phase5-2.css?v=12">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
   <!-- Librer&iacute;a para lectura de archivos Excel -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
 </head>
@@ -153,7 +154,13 @@
       <form id="workForm" class="form-card compact-form" hidden>
         <div class="section-title"><span>+</span><div><h2>Nueva obra</h2><p>Los registros quedar&aacute;n separados bajo esta obra.</p></div></div>
         <div class="field-grid"><label class="wide">Desarrollo existente o nuevo<input name="development" list="developmentOptions" placeholder="Selecciona o escribe un desarrollo nuevo" required><datalist id="developmentOptions"></datalist></label><label class="wide">N&uacute;mero o nombre de obra<input name="name" required></label><label class="wide">Ubicaci&oacute;n<input name="location" required></label><label class="wide">Datos generales<textarea name="details" rows="3"></textarea></label></div>
-        <div class="field-grid work-official-fields"><label>N&uacute;mero de obra<input name="workNumber"></label><label>Cliente<input name="client"></label><label>Centro de costo<input name="costCenter"></label><label>Orden de trabajo (OT)<input name="workOrder"></label><label>Frente<input name="front"></label><label>Partida<input name="partida"></label><label>Residente<input name="resident"></label><label>Responsable SST<input name="sstResponsible"></label><label>Fecha de inicio<input name="startDate" type="date"></label><label>Fecha estimada de t&eacute;rmino<input name="estimatedEndDate" type="date"></label><label>Estatus<select name="status"><option>Activa</option><option>Inactiva</option><option>Cerrada</option></select></label><label>Latitud<input name="latitude" inputmode="decimal" placeholder="Ej. 24.1426"></label><label>Longitud<input name="longitude" inputmode="decimal" placeholder="Ej. -110.3128"></label><label class="wide">Elabor&oacute; / responsable documental<input name="preparedBy"></label><label class="wide">Superintendente<input name="superintendent"></label></div>
+        <div class="field-grid work-official-fields"><label>N&uacute;mero de obra<input name="workNumber"></label><label>Cliente<input name="client"></label><label>Centro de costo<input name="costCenter"></label><label>Orden de trabajo (OT)<input name="workOrder"></label><label>Frente<input name="front"></label><label>Partida<input name="partida"></label><label>Residente<input name="resident"></label><label>Responsable SST<input name="sstResponsible"></label><label>Fecha de inicio<input name="startDate" type="date"></label><label>Fecha estimada de t&eacute;rmino<input name="estimatedEndDate" type="date"></label><label>Estatus<select name="status"><option>Activa</option><option>Inactiva</option><option>Cerrada</option></select></label><label class="wide">Elabor&oacute; / responsable documental<input name="preparedBy"></label><label class="wide">Superintendente<input name="superintendent"></label></div>
+        <section class="work-location-panel">
+          <div class="section-title"><span>GPS</span><div><h2>Ubicaci&oacute;n de la obra</h2><p>Guarda coordenadas para clima autom&aacute;tico y registros de campo.</p></div></div>
+          <div class="work-location-actions"><button class="secondary" id="useCurrentLocation" type="button">Usar mi ubicaci&oacute;n actual</button><button class="secondary" id="markWorkOnMap" type="button">Marcar en mapa</button><button class="primary" id="saveWorkLocation" type="button">Guardar ubicaci&oacute;n</button></div>
+          <div class="work-location-coordinates"><label>Latitud<input name="latitude" inputmode="decimal" placeholder="Ej. 24.1426"></label><label>Longitud<input name="longitude" inputmode="decimal" placeholder="Ej. -110.3128"></label><p id="workLocationSummary">Sin ubicaci&oacute;n registrada.</p></div>
+          <div id="workLocationMap" class="work-location-map" hidden></div>
+        </section>
         <div class="form-footer"><button class="ghost" id="cancelWorkButton" type="button">Cancelar</button><button class="primary" type="submit">Guardar obra</button></div>
       </form>
     </section>
@@ -444,7 +451,8 @@
   </div>
   <script src="./src/supabase.js?v=2026-07-09-mobile-ux"></script>
   <script src="./src/repositories.js?v=2026-07-07-hotfix-charset"></script>
-  <script src="./src/bootstrap.js?v=2026-07-10-weather-autocomplete"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="./src/bootstrap.js?v=2026-07-10-work-location-map"></script>
   <!-- M&oacute;dulo de Formatos Din&aacute;micos -->
   <script src="./src/dynamic-formats.js?v=2026-07-07-hotfix-charset"></script>
   <script src="./src/dynamic-formats-controller.js?v=2026-07-07-hotfix-charset"></script>
