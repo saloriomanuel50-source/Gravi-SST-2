@@ -1,13 +1,14 @@
 (async function startGraviApplication(){
   "use strict";
 
-  const scripts = ["./src/app.js","./src/corporate-documents.js","./src/extensions.js?v=2","./src/system.js","./src/pwa.js"];
+  const scripts = ["./src/app.js","./src/corporate-documents.js","./src/extensions.js?v=2","./src/system.js?v=2026-07-09-work-dashboard","./src/pwa.js"];
   const loginForm = document.querySelector("#loginForm");
   const authMessage = document.querySelector("#authMessage");
   const setPasswordForm = document.querySelector("#setPasswordForm");
   const setPasswordMessage = document.querySelector("#setPasswordMessage");
   const isSetPasswordRoute = location.pathname.replace(/\/$/, "") === "/set-password";
   let modulesLoaded = false;
+  let mobileNavigationReady = false;
 
   function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>'"]/g, character => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[character]));
@@ -27,6 +28,68 @@
     modulesLoaded = true;
   }
 
+  function installMobileNavigation() {
+    if (mobileNavigationReady) return;
+    mobileNavigationReady = true;
+    const nav = document.querySelector("#mobileBottomNav");
+    const profileSheet = document.querySelector("#mobileProfileSheet");
+    const profileTitle = document.querySelector("#mobileProfileTitle");
+    const profileRole = document.querySelector("#mobileProfileRole");
+    const mobileUsersButton = document.querySelector("#mobileUsersButton");
+    const closeProfile = document.querySelector("#mobileCloseProfile");
+    if (!nav) return;
+    const closeSheet = () => {
+      if (profileSheet) profileSheet.hidden = true;
+      nav.querySelector('[data-mobile-nav="profile"]')?.classList.remove("active");
+    };
+    const setActive = target => {
+      nav.querySelectorAll("[data-mobile-nav]").forEach(button => button.classList.toggle("active", button.dataset.mobileNav === target));
+    };
+    const clickFirst = selector => {
+      const target = document.querySelector(selector);
+      if (target) {
+        closeSheet();
+        target.click();
+        return true;
+      }
+      return false;
+    };
+    nav.querySelectorAll("[data-mobile-nav]").forEach(button => {
+      button.addEventListener("click", () => {
+        const target = button.dataset.mobileNav;
+        setActive(target);
+        if (target === "home") {
+          if (document.body.classList.contains("has-work-context")) clickFirst('[data-phase3-nav="dashboard"]');
+          else clickFirst('[data-nav52="home"]');
+        }
+        if (target === "works") clickFirst('[data-nav52="developments"]');
+        if (target === "register") {
+          closeSheet();
+          if (document.body.classList.contains("has-work-context") && window.GraviCaptureCenter?.open) window.GraviCaptureCenter.open();
+          else clickFirst('[data-nav52="developments"]');
+        }
+        if (target === "reports") {
+          if (document.body.classList.contains("has-work-context")) {
+            if (!clickFirst('[data-nav52="monthly"]') && !clickFirst('[data-phase3-nav="histories"]')) clickFirst('[data-nav52="generalHistory"]');
+          } else clickFirst('[data-nav52="generalHistory"]');
+        }
+        if (target === "profile" && profileSheet) {
+          const canManageUsers = !document.querySelector("#userManagementButton")?.hidden;
+          profileTitle.textContent = document.querySelector("#currentUserName")?.textContent || "Usuario";
+          profileRole.textContent = document.querySelector("#currentUserRole")?.textContent || "";
+          mobileUsersButton.hidden = !canManageUsers;
+          profileSheet.hidden = !profileSheet.hidden;
+        }
+      });
+    });
+    mobileUsersButton?.addEventListener("click", () => {
+      closeSheet();
+      document.querySelector("#userManagementButton")?.click();
+    });
+    closeProfile?.addEventListener("click", closeSheet);
+    window.addEventListener("gvc:auth-ready", () => setActive(document.body.classList.contains("has-work-context") ? "home" : "works"));
+  }
+
   function roleClass(role) {
     return `role-${String(role || "consulta").toLocaleLowerCase("es-MX").replaceAll(" ","-")}`;
   }
@@ -41,6 +104,7 @@
     const usersButton = document.querySelector("#userManagementButton");
     usersButton.hidden = !(window.GraviSupabase.can("admin-write") || window.GraviSupabase.canPermission?.("users.invite") || window.GraviSupabase.canPermission?.("users.edit") || window.GraviSupabase.canPermission?.("users.manage_permissions"));
     await loadModules();
+    installMobileNavigation();
     window.dispatchEvent(new CustomEvent("gvc:auth-ready", {detail:{user,profile}}));
   }
 

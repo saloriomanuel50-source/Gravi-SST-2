@@ -12,8 +12,8 @@
   <meta name="format-detection" content="telephone=no">
   <meta name="description" content="Sistema GRAVI de seguridad, salud, inspecciones y cumplimiento para obra.">
   <title>GRAVI SST</title>
-  <script>window.GRAVI_BUILD_VERSION = "2026-07-07-hotfix-charset";</script>
-  <link rel="manifest" href="./manifest.json?v=2026-07-07-hotfix-charset">
+  <script>window.GRAVI_BUILD_VERSION = "2026-07-09-work-dashboard";</script>
+  <link rel="manifest" href="./manifest.json?v=2026-07-09-work-dashboard">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/pwa-icon-192.png">
   <link rel="apple-touch-icon" href="./assets/pwa-icon-192.png">
   <link rel="stylesheet" href="./src/styles/styles.css?v=2026-07-07-hotfix-charset">
@@ -24,7 +24,7 @@
   <link rel="stylesheet" href="./src/styles/phase3.css?v=1">
   <link rel="stylesheet" href="./src/styles/phase4.css?v=1">
   <link rel="stylesheet" href="./src/styles/phase5.css?v=1">
-  <link rel="stylesheet" href="./src/styles/phase5-2.css?v=6">
+  <link rel="stylesheet" href="./src/styles/phase5-2.css?v=10">
   <!-- Librer&iacute;a para lectura de archivos Excel -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
 </head>
@@ -86,6 +86,7 @@
       </div>
       <div class="nav-work-only"><p>DASHBOARD</p>
         <button type="button" data-phase3-nav="dashboard" class="active"><span class="nav-icon"><svg><use href="#nav-dashboard"/></svg></span><span class="nav-label">Dashboard</span></button>
+        <button type="button" data-nav52="dailyLog"><span class="nav-icon"><svg><use href="#nav-calendar"/></svg></span><span class="nav-label">Registro Diario</span></button>
         <p>OPERACI&Oacute;N</p>
         <button type="button" data-phase3-nav="attendance"><span class="nav-icon"><svg><use href="#nav-calendar"/></svg></span><span class="nav-label">Asistencia</span></button><button type="button" data-phase3-nav="inspections"><span class="nav-icon"><svg><use href="#nav-shield"/></svg></span><span class="nav-label">Operaciones</span></button><button type="button" data-nav52="incidentHistory"><span class="nav-icon"><svg><use href="#nav-alert"/></svg></span><span class="nav-label">Incidencias / Accidentes</span></button><button type="button" data-phase3-nav="compliance"><span class="nav-icon"><svg><use href="#nav-check"/></svg></span><span class="nav-label">Cumplimiento normativo</span></button>
         <p>INTELIGENCIA</p>
@@ -107,6 +108,24 @@
       <button class="ghost" id="logoutButton" type="button">Cerrar sesi&oacute;n</button>
     </div>
   </header>
+  <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Navegaci&oacute;n m&oacute;vil principal">
+    <button type="button" data-mobile-nav="home" aria-label="Inicio"><svg><use href="#nav-home"/></svg><span>Inicio</span></button>
+    <button type="button" data-mobile-nav="works" aria-label="Obras"><svg><use href="#nav-buildings"/></svg><span>Obras</span></button>
+    <button type="button" data-mobile-nav="register" aria-label="Registrar"><svg><use href="#nav-shield"/></svg><span>Registrar</span></button>
+    <button type="button" data-mobile-nav="reports" aria-label="Reportes"><svg><use href="#nav-file"/></svg><span>Reportes</span></button>
+    <button type="button" data-mobile-nav="profile" aria-label="Perfil"><svg><use href="#nav-user"/></svg><span>Perfil</span></button>
+  </nav>
+  <section class="mobile-profile-sheet" id="mobileProfileSheet" hidden aria-labelledby="mobileProfileTitle">
+    <div>
+      <p class="eyebrow">PERFIL</p>
+      <h2 id="mobileProfileTitle">Usuario</h2>
+      <p id="mobileProfileRole">Rol</p>
+    </div>
+    <div class="mobile-profile-actions">
+      <button class="secondary" id="mobileUsersButton" type="button" hidden>Usuarios</button>
+      <button class="ghost" id="mobileCloseProfile" type="button">Cerrar</button>
+    </div>
+  </section>
 
   <main>
     <nav id="appBreadcrumb" class="app-breadcrumb" aria-label="Ruta de navegaci&oacute;n"><span>Inicio</span></nav>
@@ -144,6 +163,7 @@
         <h1>Consulta ejecutiva</h1>
         <p>Revisa indicadores y entra al modulo operativo correspondiente cuando necesites capturar informacion.</p>
       </div>
+      <section id="mobileDashboardSummary" class="mobile-dashboard-summary" aria-label="Resumen m&oacute;vil de la obra"></section>
       <section id="dashboardKpis" class="dashboard-kpis" aria-label="Indicadores de la obra"></section>
       <section id="dashboardInsights" class="dashboard-insights" aria-label="Tendencias y estad&iacute;sticas"></section>
       <div class="module-grid">
@@ -422,9 +442,9 @@
       <div id="userAdminList" class="user-admin-list"></div>
     </section>
   </div>
-  <script src="./src/supabase.js?v=2026-07-07-hotfix-charset"></script>
+  <script src="./src/supabase.js?v=2026-07-09-mobile-ux"></script>
   <script src="./src/repositories.js?v=2026-07-07-hotfix-charset"></script>
-  <script src="./src/bootstrap.js?v=2026-07-07-hotfix-charset"></script>
+  <script src="./src/bootstrap.js?v=2026-07-09-work-dashboard"></script>
   <!-- M&oacute;dulo de Formatos Din&aacute;micos -->
   <script src="./src/dynamic-formats.js?v=2026-07-07-hotfix-charset"></script>
   <script src="./src/dynamic-formats-controller.js?v=2026-07-07-hotfix-charset"></script>

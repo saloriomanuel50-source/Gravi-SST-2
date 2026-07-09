@@ -1,10 +1,10 @@
 "use strict";
 
-const CACHE_NAME = "gravi-sst-v2-shell-v15";
+const CACHE_NAME = "gravi-sst-v2-shell-v19";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./manifest.json?v=2026-07-07-hotfix-charset",
+  "./manifest.json?v=2026-07-09-work-dashboard",
   "./src/styles/styles.css?v=2026-07-07-hotfix-charset",
   "./src/styles/fixes.css?v=2026-07-07-hotfix-charset",
   "./src/styles/system.css?v=2026-07-07-hotfix-charset",
@@ -13,14 +13,14 @@ const APP_SHELL = [
   "./src/styles/phase3.css?v=1",
   "./src/styles/phase4.css?v=1",
   "./src/styles/phase5.css?v=1",
-  "./src/styles/phase5-2.css?v=6",
+  "./src/styles/phase5-2.css?v=10",
   "./src/app.js?v=2026-07-07-hotfix-charset",
-  "./src/supabase.js?v=2026-07-07-hotfix-charset",
+  "./src/supabase.js?v=2026-07-09-mobile-ux",
   "./src/repositories.js?v=2026-07-07-hotfix-charset",
-  "./src/bootstrap.js?v=2026-07-07-hotfix-charset",
+  "./src/bootstrap.js?v=2026-07-09-work-dashboard",
   "./src/corporate-documents.js?v=2026-07-07-hotfix-charset",
   "./src/extensions.js?v=2026-07-07-hotfix-charset",
-  "./src/system.js?v=2026-07-07-hotfix-charset",
+  "./src/system.js?v=2026-07-09-work-dashboard",
   "./src/dynamic-formats.js?v=2026-07-07-hotfix-charset",
   "./src/dynamic-formats-controller.js?v=2026-07-07-hotfix-charset",
   "./src/dynamic-formats-bootstrap.js?v=2026-07-07-hotfix-charset",
