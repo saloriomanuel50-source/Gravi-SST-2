@@ -4,6 +4,9 @@
   const scripts = ["./src/app.js","./src/corporate-documents.js","./src/extensions.js?v=2","./src/system.js","./src/pwa.js"];
   const loginForm = document.querySelector("#loginForm");
   const authMessage = document.querySelector("#authMessage");
+  const setPasswordForm = document.querySelector("#setPasswordForm");
+  const setPasswordMessage = document.querySelector("#setPasswordMessage");
+  const isSetPasswordRoute = location.pathname.replace(/\/$/, "") === "/set-password";
   let modulesLoaded = false;
 
   function escapeHtml(value) {
@@ -42,22 +45,39 @@
   }
 
   function showAuthLoading() {
-    document.body.classList.remove("auth-login", "auth-locked", "app-loading");
+    document.body.classList.remove("auth-login", "auth-locked", "app-loading", "set-password");
     document.body.classList.add("auth-loading");
     authMessage.textContent = "";
+    if (setPasswordMessage) setPasswordMessage.textContent = "";
   }
 
   function showAppLoading() {
-    document.body.classList.remove("auth-loading", "auth-login", "auth-locked");
+    document.body.classList.remove("auth-loading", "auth-login", "auth-locked", "set-password");
     document.body.classList.add("app-loading");
     authMessage.textContent = "";
+    if (setPasswordMessage) setPasswordMessage.textContent = "";
   }
 
   function showLogin(message="") {
-    document.body.classList.remove("auth-loading", "app-loading");
+    document.body.classList.remove("auth-loading", "app-loading", "set-password");
     document.body.classList.add("auth-locked", "auth-login");
+    loginForm.hidden = false;
+    setPasswordForm.hidden = true;
+    document.querySelector("#authTitle").textContent = "Bienvenido";
+    document.querySelector(".auth-copy p").textContent = "Inicia sesi\u00f3n para continuar";
     authMessage.textContent = message;
     loginForm.elements.email.focus();
+  }
+
+  function showSetPassword(message="") {
+    document.body.classList.remove("auth-loading", "app-loading", "auth-login");
+    document.body.classList.add("auth-locked", "set-password");
+    loginForm.hidden = true;
+    setPasswordForm.hidden = false;
+    document.querySelector("#authTitle").textContent = "Crear contrase\u00f1a";
+    document.querySelector(".auth-copy p").textContent = "Define tu acceso para entrar a GRAVI SST v2.";
+    setPasswordMessage.textContent = message;
+    setPasswordForm.elements.password.focus();
   }
 
   loginForm.addEventListener("submit", async event => {
@@ -72,10 +92,42 @@
       loginForm.reset();
       await enterApplication();
     } catch (error) {
-      authMessage.textContent = error.message || "No fue posible iniciar sesion.";
+      authMessage.textContent = error.message || "No fue posible iniciar sesi\u00f3n.";
     } finally {
       button.disabled = false;
-      button.textContent = "Iniciar sesion";
+      button.textContent = "Iniciar sesi\u00f3n";
+    }
+  });
+
+  setPasswordForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    const button = setPasswordForm.querySelector("button[type=submit]");
+    const fields = new FormData(setPasswordForm);
+    const password = String(fields.get("password") || "");
+    const confirmPassword = String(fields.get("confirmPassword") || "");
+    setPasswordMessage.textContent = "";
+    if (password.length < 8) {
+      setPasswordMessage.textContent = "La contrase\u00f1a debe tener al menos 8 caracteres.";
+      return;
+    }
+    if (password !== confirmPassword) {
+      setPasswordMessage.textContent = "Las contrase\u00f1as no coinciden.";
+      return;
+    }
+    button.disabled = true;
+    button.textContent = "Guardando...";
+    try {
+      await window.GraviSupabase.updatePassword(password);
+      setPasswordForm.reset();
+      setPasswordMessage.textContent = "Contrase\u00f1a creada correctamente. Entrando a GRAVI SST...";
+      window.GraviSupabase.clearAuthRedirectUrl("/");
+      showAppLoading();
+      await enterApplication();
+    } catch (error) {
+      setPasswordMessage.textContent = error.message || "No fue posible guardar la contrase\u00f1a. Solicita una nueva invitaci\u00f3n.";
+    } finally {
+      button.disabled = false;
+      button.textContent = "Guardar contrase\u00f1a";
     }
   });
 
@@ -274,13 +326,13 @@
     const fields = new FormData(event.currentTarget);
     const button = event.currentTarget.querySelector("button[type=submit]");
     button.disabled = true;
-    adminMessage.textContent = "Enviando invitacion...";
+    adminMessage.textContent = "Enviando invitaci\u00f3n...";
     try {
       await window.GraviSupabase.inviteUser({email:fields.get("email"),fullName:fields.get("fullName"),role:fields.get("role"),permissions:invitePermissionSettings});
       event.currentTarget.reset();
       invitePermissionSettings = rolePermissionSettings(inviteForm.elements.role.value);
       updateInvitePermissionSummary();
-      adminMessage.textContent = "Invitacion enviada correctamente.";
+      adminMessage.textContent = "Invitaci\u00f3n enviada. El usuario recibir\u00e1 un enlace para crear su contrase\u00f1a.";
       await renderUsers();
     } catch (error) {
       adminMessage.textContent = error.message;
@@ -289,11 +341,22 @@
 
   try {
     showAuthLoading();
-    const state = await window.GraviSupabase.bootstrap();
-    if (state.authenticated) {
-      showAppLoading();
-      await enterApplication();
-    } else showLogin(state.configured ? "" : "Supabase no esta configurado en este despliegue.");
+    if (isSetPasswordRoute || window.GraviSupabase.hasAuthRedirect()) {
+      try {
+        await window.GraviSupabase.processAuthRedirect();
+        window.GraviSupabase.clearAuthRedirectUrl("/set-password");
+        showSetPassword();
+      } catch (error) {
+        console.error("No fue posible procesar la invitacion.", error);
+        showSetPassword(error.message || "El enlace de invitaci\u00f3n no es v\u00e1lido o ya expir\u00f3.");
+      }
+    } else {
+      const state = await window.GraviSupabase.bootstrap();
+      if (state.authenticated) {
+        showAppLoading();
+        await enterApplication();
+      } else showLogin(state.configured ? "" : "Supabase no esta configurado en este despliegue.");
+    }
   } catch (error) {
     console.error("No fue posible preparar el acceso a GRAVI SST.", error);
     showLogin("No fue posible conectar con el servicio de acceso.");

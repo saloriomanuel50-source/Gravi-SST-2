@@ -60,6 +60,12 @@
           <p class="auth-message" id="authMessage" role="alert"></p>
           <button class="primary" type="submit">Iniciar sesi&oacute;n</button>
         </form>
+        <form id="setPasswordForm" class="auth-form set-password-form" hidden>
+          <label>Nueva contrase&ntilde;a<input name="password" type="password" autocomplete="new-password" minlength="8" required placeholder="M&iacute;nimo 8 caracteres"></label>
+          <label>Confirmar contrase&ntilde;a<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required placeholder="Repite tu contrase&ntilde;a"></label>
+          <p class="auth-message" id="setPasswordMessage" role="alert"></p>
+          <button class="primary" type="submit">Guardar contrase&ntilde;a</button>
+        </form>
       </div>
     </div>
   </section>

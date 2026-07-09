@@ -197,6 +197,56 @@
     return payload;
   }
 
+  async function ensureConfigured() {
+    if (configured && config?.url && config?.anonKey) return true;
+    config = await resolveConfig();
+    configured = Boolean(config?.url && config?.anonKey);
+    if (configured) config.url = config.url.replace(/\/$/, "");
+    return configured;
+  }
+
+  function authRedirectParams() {
+    const params = new URLSearchParams();
+    const addAll = source => source.forEach((value, key) => params.set(key, value));
+    const query = String(global.location.search || "").replace(/^\?/, "");
+    const hash = String(global.location.hash || "").replace(/^#/, "");
+    if (query) addAll(new URLSearchParams(query));
+    if (hash) addAll(new URLSearchParams(hash.includes("?") ? hash.slice(hash.indexOf("?") + 1) : hash));
+    return params;
+  }
+
+  function hasAuthRedirect() {
+    const params = authRedirectParams();
+    return Boolean(params.get("access_token") || params.get("refresh_token") || params.get("type") === "invite");
+  }
+
+  async function processAuthRedirect() {
+    if (!await ensureConfigured()) throw new Error("Supabase no est\u00e1 configurado en este despliegue.");
+    const params = authRedirectParams();
+    const accessToken = params.get("access_token");
+    const refreshToken = params.get("refresh_token");
+    if (params.get("error_description")) throw new Error(params.get("error_description"));
+    if (!accessToken || !refreshToken) {
+      if (currentSession?.access_token || await restoreSession()) return {session:currentSession,user:currentSession?.user || null,type:params.get("type") || ""};
+      throw new Error("El enlace de invitaci\u00f3n no contiene una sesi\u00f3n v\u00e1lida. Solicita una nueva invitaci\u00f3n.");
+    }
+    const session = {
+      access_token:accessToken,
+      refresh_token:refreshToken,
+      token_type:params.get("token_type") || "bearer",
+      expires_in:Number(params.get("expires_in") || 3600)
+    };
+    saveSession(session);
+    const user = await authRequest("user", {token:accessToken});
+    currentSession.user = user;
+    saveSession(currentSession);
+    return {session:currentSession,user,type:params.get("type") || ""};
+  }
+
+  function clearAuthRedirectUrl(path="/set-password") {
+    if (global.history?.replaceState) global.history.replaceState({}, document.title, path);
+  }
+
   async function refreshSession() {
     if (!currentSession?.refresh_token) throw new Error("La sesión expiró.");
     const refreshed = await authRequest("token?grant_type=refresh_token", {method:"POST",body:{refresh_token:currentSession.refresh_token}});
@@ -614,19 +664,16 @@
   async function bootstrap() {
     emitStatus("syncing", "Preparando acceso seguro...");
     if (!readJson(SESSION_KEY, null)) clearSensitiveCache();
-    config = await resolveConfig();
-    configured = Boolean(config?.url && config?.anonKey);
-    if (!configured) {
+    if (!await ensureConfigured()) {
       emitStatus("error", "Supabase sin configurar");
       return {configured:false,authenticated:false};
     }
-    config.url = config.url.replace(/\/$/, "");
     if (!await restoreSession()) return {configured:true,authenticated:false};
     return loadAuthenticatedData();
   }
 
   async function login(email, password) {
-    if (!configured) throw new Error("Supabase no está configurado en este despliegue.");
+    if (!await ensureConfigured()) throw new Error("Supabase no est\u00e1 configurado en este despliegue.");
     const session = await authRequest("token?grant_type=password", {method:"POST",body:{email:String(email||"").trim(),password:String(password||"")}});
     saveSession(session);
     try {
@@ -649,6 +696,17 @@
     currentProfile = null;
     localStorage.removeItem(SESSION_KEY);
     clearSensitiveCache();
+  }
+
+  async function updatePassword(password) {
+    if (!await ensureConfigured()) throw new Error("Supabase no est\u00e1 configurado en este despliegue.");
+    await ensureFreshSession();
+    const user = await authRequest("user", {method:"PUT",token:currentSession.access_token,body:{password}});
+    currentSession.user = user;
+    saveSession(currentSession);
+    await loadProfile();
+    await loadAuthenticatedData();
+    return {user:currentSession.user,profile:currentProfile};
   }
 
   async function listProfiles() {
@@ -690,7 +748,11 @@
     const settings = permissions ? normalizePermissionSettings(permissions) : {permissions_mode:"role-default", custom_permissions:{}};
     const response = await fetch("./api/invite-user", {method:"POST",headers:{"Authorization":`Bearer ${currentSession.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({email,fullName,role,permissions:settings})});
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error || "No fue posible enviar la invitación.");
+    if (!response.ok) {
+      const errorText = String(payload.error || "");
+      const redirectDenied = /redirect|redirecci|uri|url/i.test(errorText) && /allow|permit|not allowed|invalid/i.test(errorText);
+      throw new Error(redirectDenied ? "La URL de redirecci\u00f3n no est\u00e1 permitida en Supabase. Verifica Authentication > URL Configuration." : (payload.error || "No fue posible enviar la invitaci\u00f3n."));
+    }
     removeMigratedLocalPermissions("", email);
     return payload;
   }
@@ -789,7 +851,7 @@
 
   global.GraviSupabase = {
     bootstrap, login, logout, scheduleSystemSync, syncSystemData, upsertRecord, syncRecords,
-    listProfiles, updateProfile, inviteUser, can, canPermission, dynamicFormats,
+    listProfiles, updateProfile, inviteUser, updatePassword, processAuthRedirect, clearAuthRedirectUrl, hasAuthRedirect, can, canPermission, dynamicFormats,
     permissionGroups:() => clone(PERMISSION_GROUPS),
     roleDefaultPermissions:role => permissionDefaults(role),
     getProfilePermissions:profile => ({settings:permissionSettingsFor(profile || currentProfile || {}), effective:effectivePermissions(profile || currentProfile || {})}),
