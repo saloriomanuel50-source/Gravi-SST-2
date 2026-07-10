@@ -4,6 +4,7 @@
   const SYSTEM_KEY = "gvc-ops-system-v1";
   const RECORDS_KEY = "gvc-extintores-records-v1";
   const DYNAMIC_FORMATS_KEY = "gvc-dynamic-formats-v1";
+  const DAILY_REPORTS_KEY = "gvc-daily-log-v1";
 
   const emptySystem = Object.freeze({
     works: [],
@@ -42,6 +43,16 @@
 
   function dynamicFormatsData() {
     return readJson(DYNAMIC_FORMATS_KEY, {formats: [], records: []});
+  }
+
+  function dailyReportsData() {
+    const userId = global.GraviSupabase?.getUser?.()?.id || global.GraviSupabase?.getProfile?.()?.user_id || "";
+    const rows = readJson(userId ? `${DAILY_REPORTS_KEY}:${userId}` : DAILY_REPORTS_KEY, []);
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  function dailyReportIdentity(item={}) {
+    return `${item.workId || item.work_id || ""}|${item.date || item.log_date || ""}|${item.shift || "Matutino"}`;
   }
 
   function byId(list, id) {
@@ -114,7 +125,24 @@
     records: readonlyList(recordsData),
     compliance: readonlyList(complianceList),
     documents: readonlyList(() => [...documentsList(), ...dynamicFormatDocuments()]),
-    audit: readonlyList(() => systemData().auditLog || [])
+    audit: readonlyList(() => systemData().auditLog || []),
+    dailyReports:Object.freeze({
+      list() { return clone(dailyReportsData()); },
+      get(workId,date,shift="Matutino") {
+        return clone(dailyReportsData().find(item => dailyReportIdentity(item) === dailyReportIdentity({workId,date,shift})) || null);
+      },
+      forWork(workId) {
+        return clone(dailyReportsData().filter(item => item.workId === workId).sort((a,b) => String(b.date || "").localeCompare(String(a.date || ""))));
+      },
+      saveDraft(item,options={}) {
+        if (!global.GraviSupabase?.dailyReports) return Promise.resolve({success:false,pending:true,report:clone(item)});
+        return global.GraviSupabase.dailyReports.saveDraft(clone(item),options);
+      },
+      closeManual(item) {
+        if (!global.GraviSupabase?.dailyReports) return Promise.reject(new Error("Supabase no est\u00e1 disponible."));
+        return global.GraviSupabase.dailyReports.closeManual(clone(item));
+      }
+    })
   });
 
   global.GraviRepositories = repositories;

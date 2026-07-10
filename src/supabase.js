@@ -7,6 +7,8 @@
   const SESSION_KEY = "gvc-supabase-session-v1";
   const DYNAMIC_FORMATS_CACHE_KEY = "gvc-dynamic-formats-v1";
   const DYNAMIC_FORMATS_PENDING_KEY = "gvc-dynamic-formats-pending-v1";
+  const DAILY_REPORTS_CACHE_KEY = "gvc-daily-log-v1";
+  const DAILY_REPORTS_MIGRATION_KEY = "gvc-daily-log-v2-migration";
   const USER_PERMISSIONS_KEY = "gvc-user-permissions-v1";
   const PENDING_INVITE_PERMISSIONS_KEY = "gvc-user-permissions-pending-invites-v1";
   const TABLES = {
@@ -21,7 +23,8 @@
     records: "registros",
     state: "estado_aplicacion",
     compliance: "cumplimiento_estado",
-    profiles: "perfiles_usuario"
+    profiles: "perfiles_usuario",
+    dailyReports: "registro_diario"
   };
 
   let config = null;
@@ -182,7 +185,7 @@
     fixed.forEach(key => localStorage.removeItem(key));
     const keys = [];
     for (let index = 0; index < localStorage.length; index++) keys.push(localStorage.key(index));
-    keys.filter(key => key && key.startsWith("gvc-") && key.includes("draft")).forEach(key => localStorage.removeItem(key));
+    keys.filter(key => key && ((key===DAILY_REPORTS_CACHE_KEY) || key.startsWith(`${DAILY_REPORTS_CACHE_KEY}:`) || key===DAILY_REPORTS_MIGRATION_KEY || key.startsWith(`${DAILY_REPORTS_MIGRATION_KEY}:`) || (key.startsWith("gvc-") && key.includes("draft")))).forEach(key => localStorage.removeItem(key));
   }
 
   async function authRequest(path, options={}) {
@@ -342,7 +345,8 @@
     return (data.works || []).map(item => ({
       ...baseRow(item), development_id:developments.find(dev => normalized(dev.name) === normalized(item.development))?.id || null,
       development_name:item.development || "", name:item.name || "Sin nombre", status:item.status || "Activa",
-      location:item.location || "", client:item.client || "", start_date:item.startDate || null, deleted_at:item.deletedAt || null
+      location:item.location || "", client:item.client || "", start_date:item.startDate || null,
+      timezone:item.timezone || "America/Mazatlan", deleted_at:item.deletedAt || null
     }));
   }
 
@@ -573,7 +577,7 @@
       ...local,
       ...state,
       ...compliance,
-      developments:payloads(remote.developments), works:payloads(remote.works),
+      developments:payloads(remote.developments), works:remote.works.map(row => ({...(row.payload || {}),timezone:row.timezone || row.payload?.timezone || "America/Mazatlan"})),
       contractors:payloads(remote.contractors), workers:payloads(remote.workers),
       visitors:payloads(remote.visitors), investigations:payloads(remote.investigations),
       histories:payloads(remote.histories), attendance:{}
@@ -669,7 +673,9 @@
       return {configured:false,authenticated:false};
     }
     if (!await restoreSession()) return {configured:true,authenticated:false};
-    return loadAuthenticatedData();
+    const result = await loadAuthenticatedData();
+    await prepareDailyReports();
+    return result;
   }
 
   async function login(email, password) {
@@ -679,6 +685,7 @@
     try {
       await loadProfile();
       await loadAuthenticatedData();
+      await prepareDailyReports();
       return {user:currentSession.user,profile:currentProfile};
     } catch (error) {
       currentSession = null;
@@ -706,6 +713,7 @@
     saveSession(currentSession);
     await loadProfile();
     await loadAuthenticatedData();
+    await prepareDailyReports();
     return {user:currentSession.user,profile:currentProfile};
   }
 
@@ -839,6 +847,213 @@
     return {success:true, source:"local-placeholder", pending:readJson(DYNAMIC_FORMATS_PENDING_KEY, []).length};
   }
 
+  function normalizeDailyReportStatus(value) {
+    const status = String(value || "draft");
+    if (status === "Borrador") return "draft";
+    if (status === "Cerrado") return "closed_manual";
+    return status;
+  }
+
+  function dailyReportIdentity(item={}) {
+    const workId = item.workId || item.work_id || "";
+    const date = item.date || item.log_date || "";
+    const shift = item.shift || "Matutino";
+    return `${workId}|${date}|${shift}`;
+  }
+
+  function dailyReportFromRow(row={}) {
+    const payload = row.payload && typeof row.payload === "object" ? clone(row.payload) : {};
+    return {
+      ...payload,
+      id:row.id || payload.id || dailyReportIdentity({...payload,workId:row.work_id,date:row.log_date,shift:row.shift}),
+      workId:row.work_id || payload.workId || "",
+      developmentId:row.development_id || payload.developmentId || "",
+      date:row.log_date || payload.date || "",
+      shift:row.shift || payload.shift || "Matutino",
+      timezone:row.timezone || payload.timezone || "America/Mazatlan",
+      status:normalizeDailyReportStatus(row.status || payload.status),
+      supervisorId:row.supervisor_id || payload.supervisorId || "",
+      supervisorName:row.supervisor_name || payload.supervisorName || payload.supervisor || "",
+      supervisor:row.supervisor_name || payload.supervisor || "",
+      folio:row.folio || payload.folio || "",
+      openedAt:row.opened_at || payload.openedAt || row.created_at || "",
+      closedAt:row.closed_at || payload.closedAt || "",
+      closeType:row.close_type || payload.closeType || "",
+      version:Number(row.version || payload.version || 1),
+      automaticData:row.automatic_data || payload.automaticData || {},
+      automaticSnapshot:row.automatic_snapshot || payload.automaticSnapshot || null,
+      manualData:row.manual_data || payload.manualData || {},
+      missingFields:row.missing_fields || payload.missingFields || [],
+      completenessPercentage:Number(row.completeness_percentage || payload.completenessPercentage || 0),
+      completenessStatus:row.completeness_status || payload.completenessStatus || "incomplete",
+      requiresReview:Boolean(row.requires_review || payload.requiresReview),
+      autoClosed:Boolean(row.auto_closed || payload.autoClosed),
+      validatedBy:row.validated_by || payload.validatedBy || "",
+      validatedAt:row.validated_at || payload.validatedAt || "",
+      reopenedBy:row.reopened_by || payload.reopenedBy || "",
+      reopenedAt:row.reopened_at || payload.reopenedAt || "",
+      reopenReason:row.reopen_reason || payload.reopenReason || "",
+      annulledBy:row.annulled_by || payload.annulledBy || "",
+      annulledAt:row.annulled_at || payload.annulledAt || "",
+      annulReason:row.annul_reason || payload.annulReason || "",
+      closureNote:row.closure_note || payload.closureNote || "",
+      remoteSyncedAt:row.updated_at || new Date().toISOString(),
+      persistenceVersion:2
+    };
+  }
+
+  function dailyReportCache() {
+    const rows = readJson(dailyReportsStorageKey(), []);
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  function dailyReportsStorageKey() {
+    const userId = currentSession?.user?.id || currentProfile?.user_id || "";
+    return userId ? `${DAILY_REPORTS_CACHE_KEY}:${userId}` : DAILY_REPORTS_CACHE_KEY;
+  }
+
+  function dailyReportsMigrationKey() {
+    const userId = currentSession?.user?.id || currentProfile?.user_id || "";
+    return userId ? `${DAILY_REPORTS_MIGRATION_KEY}:${userId}` : DAILY_REPORTS_MIGRATION_KEY;
+  }
+
+  function writeDailyReportCache(rows) {
+    const unique = new Map();
+    (rows || []).forEach(item => unique.set(dailyReportIdentity(item), item));
+    writeJson(dailyReportsStorageKey(), [...unique.values()].sort((a,b) => String(b.date || "").localeCompare(String(a.date || ""))));
+  }
+
+  function dailyReportPendingStore() {
+    const pending = readJson(PENDING_KEY, {system:null,records:{},dailyReports:{}});
+    pending.dailyReports ||= {};
+    return pending;
+  }
+
+  function cacheDailyReport(item) {
+    const rows = dailyReportCache().filter(row => dailyReportIdentity(row) !== dailyReportIdentity(item));
+    rows.unshift(item);
+    writeDailyReportCache(rows);
+  }
+
+  function queueDailyReport(item, mutationId) {
+    const pending = dailyReportPendingStore();
+    pending.dailyReports[dailyReportIdentity(item)] = {mutationId,item:clone(item),queuedAt:new Date().toISOString()};
+    writeJson(PENDING_KEY, pending);
+  }
+
+  function clearQueuedDailyReport(item, mutationId) {
+    const pending = dailyReportPendingStore();
+    const key = dailyReportIdentity(item);
+    if (pending.dailyReports[key]?.mutationId === mutationId) delete pending.dailyReports[key];
+    writeJson(PENDING_KEY, pending);
+  }
+
+  async function refreshDailyReports() {
+    if (!configured || !currentSession?.access_token) return dailyReportCache();
+    try {
+      const rows = await selectAll(TABLES.dailyReports);
+      const remote = rows.map(dailyReportFromRow);
+      const pending = dailyReportPendingStore().dailyReports;
+      const pendingRows = Object.values(pending).map(entry => entry.item);
+      const pendingKeys = new Set(pendingRows.map(dailyReportIdentity));
+      writeDailyReportCache([...pendingRows, ...remote.filter(item => !pendingKeys.has(dailyReportIdentity(item)))]);
+      return dailyReportCache();
+    } catch (error) {
+      console.warn("Registro Diario remoto no disponible; se conserva la cach\u00e9 local.", error);
+      return dailyReportCache();
+    }
+  }
+
+  async function saveDailyReportDraft(item, options={}) {
+    const report = {...clone(item),shift:item.shift || "Matutino",timezone:item.timezone || "America/Mazatlan",status:"draft"};
+    report.id = report.id && String(report.id).split("|").length >= 3 ? report.id : dailyReportIdentity(report);
+    const mutationId = crypto.randomUUID();
+    cacheDailyReport({...report,syncState:"pending"});
+    queueDailyReport(report, mutationId);
+    if (!configured || !currentSession?.access_token) {
+      emitStatus("cached", "Pendiente de sincronizaci\u00f3n");
+      return {success:false,pending:true,report};
+    }
+    emitStatus("syncing", "Guardando Registro Diario...");
+    try {
+      const result = await request("rpc/save_daily_report_draft", {
+        method:"POST",
+        body:{p_report:report,p_expected_version:options.expectedVersion ?? report.version ?? null}
+      });
+      const canonical = dailyReportFromRow(Array.isArray(result) ? result[0] : result);
+      cacheDailyReport({...canonical,syncState:"saved"});
+      clearQueuedDailyReport(report, mutationId);
+      emitStatus("synced", "Registro Diario guardado");
+      return {success:true,pending:false,report:canonical};
+    } catch (error) {
+      emitStatus("error", "Registro Diario pendiente de sincronizaci\u00f3n");
+      console.warn("No fue posible guardar Registro Diario en Supabase.", error);
+      return {success:false,pending:true,report,error};
+    }
+  }
+
+  async function closeDailyReportManual(item) {
+    if (!configured || !currentSession?.access_token) throw new Error("El cierre oficial requiere conexi\u00f3n con Supabase.");
+    const draft = await saveDailyReportDraft({...item,status:"draft"},{expectedVersion:item.version ?? null});
+    if (!draft.success) throw draft.error || new Error("No fue posible sincronizar el borrador antes del cierre.");
+    const result = await request("rpc/close_daily_report_manual", {
+      method:"POST",
+      body:{p_report_id:draft.report.id,p_expected_version:draft.report.version}
+    });
+    const canonical = dailyReportFromRow(Array.isArray(result) ? result[0] : result);
+    cacheDailyReport({...canonical,syncState:"saved"});
+    return canonical;
+  }
+
+  async function flushDailyReportPending() {
+    const entries = Object.values(dailyReportPendingStore().dailyReports);
+    for (const entry of entries) await saveDailyReportDraft(entry.item,{expectedVersion:entry.item.version ?? null});
+    return {pending:Object.keys(dailyReportPendingStore().dailyReports).length};
+  }
+
+  async function migrateLegacyDailyReports() {
+    if (!configured || !currentSession?.access_token) return {migrated:0,pending:true};
+    const previousMigration = readJson(dailyReportsMigrationKey(), null);
+    if (previousMigration?.completedAt) return {migrated:0,pending:false,skipped:true};
+    const legacyCache = currentProfile?.role === "Administrador" && dailyReportsStorageKey() !== DAILY_REPORTS_CACHE_KEY
+      ? readJson(DAILY_REPORTS_CACHE_KEY, [])
+      : [];
+    const legacy = (Array.isArray(legacyCache) ? legacyCache : []).filter(item => Number(item.persistenceVersion || 0) < 2);
+    let migrated = 0;
+    for (const item of legacy) {
+      try {
+        const result = await request("rpc/import_legacy_daily_report", {method:"POST",body:{p_report:item}});
+        cacheDailyReport(dailyReportFromRow(Array.isArray(result) ? result[0] : result));
+        migrated++;
+      } catch (error) {
+        console.warn("Registro Diario heredado pendiente de migraci\u00f3n.", error);
+      }
+    }
+    if (!legacy.length || migrated === legacy.length) writeJson(dailyReportsMigrationKey(),{completedAt:new Date().toISOString(),migrated,source:"legacy-unscoped",userId:currentSession?.user?.id||""});
+    return {migrated,pending:migrated !== legacy.length};
+  }
+
+  async function prepareDailyReports() {
+    await migrateLegacyDailyReports();
+    await flushDailyReportPending();
+    await refreshDailyReports();
+  }
+
+  const dailyReports = Object.freeze({
+    list:() => clone(dailyReportCache()),
+    get:(workId,date,shift="Matutino") => clone(dailyReportCache().find(item => dailyReportIdentity(item) === dailyReportIdentity({workId,date,shift})) || null),
+    refresh:refreshDailyReports,
+    saveDraft:saveDailyReportDraft,
+    closeManual:closeDailyReportManual,
+    migrateLegacy:migrateLegacyDailyReports,
+    flushPending:flushDailyReportPending,
+    getSyncStatus:() => ({pending:Object.keys(dailyReportPendingStore().dailyReports).length,status:{...lastStatus}})
+  });
+
+  global.addEventListener("online", () => {
+    if (currentSession && configured) prepareDailyReports().catch(error => console.warn("Sincronizaci\u00f3n de Registro Diario pendiente.", error));
+  });
+
   const dynamicFormats = Object.freeze({
     listFormats:listDynamicFormats,
     getFormat:getDynamicFormat,
@@ -851,7 +1066,7 @@
 
   global.GraviSupabase = {
     bootstrap, login, logout, scheduleSystemSync, syncSystemData, upsertRecord, syncRecords,
-    listProfiles, updateProfile, inviteUser, updatePassword, processAuthRedirect, clearAuthRedirectUrl, hasAuthRedirect, can, canPermission, dynamicFormats,
+    listProfiles, updateProfile, inviteUser, updatePassword, processAuthRedirect, clearAuthRedirectUrl, hasAuthRedirect, can, canPermission, dynamicFormats, dailyReports,
     permissionGroups:() => clone(PERMISSION_GROUPS),
     roleDefaultPermissions:role => permissionDefaults(role),
     getProfilePermissions:profile => ({settings:permissionSettingsFor(profile || currentProfile || {}), effective:effectivePermissions(profile || currentProfile || {})}),

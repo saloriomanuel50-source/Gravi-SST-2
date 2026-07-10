@@ -34,6 +34,8 @@ const requiredFiles = [
   "api/supabase-config.js",
   "api/invite-user.js",
   "database/schema.sql",
+  "database/registro_diario.sql",
+  "database/daily_reports_v2.sql",
   "database/storage_evidencias.sql"
 ];
 
@@ -95,6 +97,11 @@ for (const reference of ["./src/app.js", "./src/corporate-documents.js", "./src/
 const serviceWorker = read("service-worker.js");
 for (const reference of ["./src/app.js", "./src/supabase.js", "./src/bootstrap.js?v=2026-07-10-work-dashboard-icons", "./src/system.js?v=2026-07-10-work-dashboard-icons", "./src/styles/phase5-2.css?v=16", "./assets/gravi-sst-logo-dark.png", "./assets/gravi-sst-login-panel.png", "./assets/gravi-sst-splash.png", "./assets/pwa-icon-192.png"]) {
   if (!serviceWorker.includes(reference)) fail(`service-worker.js no precachea ${reference}`);
+}
+
+const dailyReportsSql = read("database/daily_reports_v2.sql");
+for (const reference of ["public.registro_diario", "unique index if not exists registro_diario_work_date_shift_uidx", "automatic_snapshot", "close_due_daily_reports", "work_user_assignments"]) {
+  if (!dailyReportsSql.includes(reference)) fail(`daily_reports_v2.sql no contiene ${reference}`);
 }
 
 if (process.exitCode) process.exit(process.exitCode);
