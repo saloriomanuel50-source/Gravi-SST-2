@@ -1,7 +1,7 @@
 (async function startGraviApplication(){
   "use strict";
 
-  const scripts = ["./src/app.js","./src/corporate-documents.js","./src/extensions.js?v=2","./src/system.js?v=2026-07-10-work-dashboard-readonly","./src/pwa.js"];
+  const scripts = ["./src/app.js","./src/corporate-documents.js","./src/extensions.js?v=2","./src/system.js?v=2026-07-10-work-dashboard-icons","./src/pwa.js"];
   const loginForm = document.querySelector("#loginForm");
   const authMessage = document.querySelector("#authMessage");
   const setPasswordForm = document.querySelector("#setPasswordForm");
