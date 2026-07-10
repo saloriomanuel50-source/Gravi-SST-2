@@ -549,6 +549,32 @@ end $$;
 revoke all on function public.close_daily_report_manual(text,integer) from public, anon;
 grant execute on function public.close_daily_report_manual(text,integer) to authenticated;
 
+create or replace function public.confirm_daily_report_automatic(
+  p_report_id text,
+  p_expected_version integer
+) returns public.registro_diario
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  r public.registro_diario%rowtype;
+begin
+  select * into r from public.registro_diario where id=p_report_id for update;
+  if not found then raise exception 'Registro diario no encontrado'; end if;
+  if not public.can_access_daily_report(r.work_id,'validate') then raise exception 'Sin permiso para validar esta obra'; end if;
+  if r.status <> 'closed_auto' then raise exception 'Solo se pueden validar cierres automáticos'; end if;
+  if r.version <> p_expected_version then raise exception 'Conflicto de versión'; end if;
+  update public.registro_diario set
+    validated_by=auth.uid(),validated_at=now(),requires_review=false,
+    version=version+1,updated_at=now()
+  where id=r.id returning * into r;
+  insert into public.daily_report_closure_log(work_id,report_id,previous_status,new_status,result,metadata)
+  values(r.work_id,r.id,'closed_auto','closed_auto','validated',jsonb_build_object('actor',auth.uid(),'validated_at',now()));
+  return r;
+end $$;
+
+revoke all on function public.confirm_daily_report_automatic(text,integer) from public, anon;
+grant execute on function public.confirm_daily_report_automatic(text,integer) to authenticated;
+
 -- Preparada para ser invocada por pg_cron en una fase posterior. Esta función
 -- no programa ningún job y es idempotente por la restricción única de jornada.
 create or replace function public.close_due_daily_reports(
@@ -568,6 +594,7 @@ declare
   v_skipped integer := 0;
   v_errors integer := 0;
   v_new boolean;
+  v_closure_note text;
 begin
   for v_work in
     select id, coalesce(nullif(timezone,''),'America/Mazatlan') as timezone
@@ -586,7 +613,7 @@ begin
       select * into v_report
       from public.registro_diario
       where work_id=v_work.id and log_date=v_date and shift='Matutino'
-      for update skip locked;
+      for update;
 
       if not found then
         insert into public.registro_diario(
@@ -614,6 +641,11 @@ begin
         continue;
       end if;
 
+      v_closure_note := case when v_new
+        then U&'Registro creado y cerrado autom\00e1ticamente a las 22:00 sin validaci\00f3n del supervisor.'
+        else U&'Registro cerrado autom\00e1ticamente a las 22:00. No fue validado por el supervisor responsable.'
+      end;
+
       v_snapshot := public.build_daily_report_snapshot(v_report.id);
       v_integrity := public.daily_report_completeness(v_report.manual_data,v_snapshot);
       update public.registro_diario set
@@ -627,6 +659,7 @@ begin
         folio=coalesce(v_report.folio,concat('RD-',extract(year from v_report.log_date)::integer,'-',upper(substr(md5(v_report.work_id),1,5)),'-',to_char(v_report.log_date,'MMDD'),'-',substr(v_report.shift,1,1))),
         version=v_report.version+1,updated_at=p_now
       where id=v_report.id;
+      update public.registro_diario set closure_note=v_closure_note where id=v_report.id;
       insert into public.daily_report_closure_log(work_id,report_id,previous_status,new_status,result,metadata)
       values(v_report.work_id,v_report.id,v_report.status,'closed_auto','success',jsonb_build_object('source','close_due_daily_reports','evaluated_at',p_now));
       v_closed := v_closed + 1;

@@ -1005,6 +1005,17 @@
     return canonical;
   }
 
+  async function confirmDailyReportAutomatic(item) {
+    if (!configured || !currentSession?.access_token) throw new Error("La validación requiere conexión con Supabase.");
+    const result = await request("rpc/confirm_daily_report_automatic", {
+      method:"POST",
+      body:{p_report_id:item.id,p_expected_version:item.version}
+    });
+    const canonical = dailyReportFromRow(Array.isArray(result) ? result[0] : result);
+    cacheDailyReport({...canonical,syncState:"saved"});
+    return canonical;
+  }
+
   async function flushDailyReportPending() {
     const entries = Object.values(dailyReportPendingStore().dailyReports);
     for (const entry of entries) await saveDailyReportDraft(entry.item,{expectedVersion:entry.item.version ?? null});
@@ -1045,6 +1056,7 @@
     refresh:refreshDailyReports,
     saveDraft:saveDailyReportDraft,
     closeManual:closeDailyReportManual,
+    confirmAutomatic:confirmDailyReportAutomatic,
     migrateLegacy:migrateLegacyDailyReports,
     flushPending:flushDailyReportPending,
     getSyncStatus:() => ({pending:Object.keys(dailyReportPendingStore().dailyReports).length,status:{...lastStatus}})
