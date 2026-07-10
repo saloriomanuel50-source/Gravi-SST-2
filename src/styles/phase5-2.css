@@ -86,3 +86,12 @@ body.set-password>.auth-screen{display:grid!important}body.set-password #loginFo
 @media(max-width:520px){
   body:not(.auth-locked)>main{padding-left:12px;padding-right:12px}.mobile-priority-grid{grid-template-columns:1fr 1fr}.mobile-priority-grid article:last-child{grid-column:1/-1}.topbar .brand img{width:112px}.hero h1,.navigation-heading h1,.page-heading h1,.works-heading h1{font-size:25px}.auth-visual{min-height:190px}.auth-card{border-radius:20px}.auth-panel{padding:26px 20px 30px}.auth-copy h1{font-size:30px}
 }
+
+/* Centro de control de obra: codificacion cromatica de lectura rapida. */
+.work-command-kpi{display:grid;grid-template-columns:50px minmax(0,1fr);grid-template-rows:auto auto auto;column-gap:12px;align-content:center}
+.work-command-kpi>span{grid-row:1/4;width:50px;height:50px;border-radius:15px;font-size:12px}
+.work-command-kpi>b,.work-command-kpi>strong,.work-command-kpi>small{grid-column:2;margin-top:0}
+.work-command-kpi:nth-child(1)>span{background:#eaf2ff;color:#2563eb}.work-command-kpi:nth-child(2)>span{background:#eaf8f4;color:#00856f}.work-command-kpi:nth-child(3)>span{background:#f4eafe;color:#9333ea}.work-command-kpi:nth-child(4)>span,.work-command-kpi:nth-child(5)>span{background:#fff3e8;color:#f97316}.work-command-kpi:nth-child(6)>span,.work-command-kpi:nth-child(7)>span{background:#fff0f0;color:#dc2626}.work-command-kpi:nth-child(8)>span{background:#eaf8f4;color:#00856f}
+.work-command-kpi:nth-child(1){border-top:3px solid #2563eb}.work-command-kpi:nth-child(2),.work-command-kpi:nth-child(8){border-top:3px solid #00856f}.work-command-kpi:nth-child(3){border-top:3px solid #9333ea}.work-command-kpi:nth-child(4),.work-command-kpi:nth-child(5){border-top:3px solid #f97316}.work-command-kpi:nth-child(6),.work-command-kpi:nth-child(7){border-top:3px solid #dc2626}
+.work-command-card{transition:box-shadow .18s ease,border-color .18s ease}.work-command-card:hover{border-color:#cbded9;box-shadow:0 14px 34px rgba(16,38,45,.08)}
+@media(max-width:700px){.work-command-kpi{grid-template-columns:42px minmax(0,1fr);column-gap:10px}.work-command-kpi>span{width:42px;height:42px}}
