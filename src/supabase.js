@@ -929,6 +929,24 @@
     return pending;
   }
 
+  function unwrapDailyReportResponse(result) {
+    if (Array.isArray(result)) return unwrapDailyReportResponse(result[0] || null);
+    if (result && typeof result === "object" && (result.data || result.result)) return unwrapDailyReportResponse(result.data || result.result);
+    return result && typeof result === "object" ? result : null;
+  }
+
+  function dailyReportQueueKey(item) {
+    const userId = currentSession?.user?.id || currentProfile?.user_id || "anonymous";
+    return `${userId}|${dailyReportIdentity(item)}`;
+  }
+
+  async function findRemoteDailyReport(item) {
+    if (!configured || !currentSession?.access_token) return null;
+    const params = `?work_id=eq.${encodeURIComponent(item.workId || item.work_id)}&log_date=eq.${encodeURIComponent(item.date || item.log_date)}&shift=eq.${encodeURIComponent(item.shift || "Matutino")}&select=*`;
+    const rows = await request(`${TABLES.dailyReports}${params}`, {method:"GET"});
+    return dailyReportFromRow(unwrapDailyReportResponse(rows));
+  }
+
   function cacheDailyReport(item) {
     const rows = dailyReportCache().filter(row => dailyReportIdentity(row) !== dailyReportIdentity(item));
     rows.unshift(item);
@@ -937,13 +955,13 @@
 
   function queueDailyReport(item, mutationId) {
     const pending = dailyReportPendingStore();
-    pending.dailyReports[dailyReportIdentity(item)] = {mutationId,item:clone(item),queuedAt:new Date().toISOString()};
+    pending.dailyReports[dailyReportQueueKey(item)] = {mutationId,userId:currentSession?.user?.id || currentProfile?.user_id || null,item:clone(item),queuedAt:new Date().toISOString()};
     writeJson(PENDING_KEY, pending);
   }
 
   function clearQueuedDailyReport(item, mutationId) {
     const pending = dailyReportPendingStore();
-    const key = dailyReportIdentity(item);
+    const key = dailyReportQueueKey(item);
     if (pending.dailyReports[key]?.mutationId === mutationId) delete pending.dailyReports[key];
     writeJson(PENDING_KEY, pending);
   }
@@ -953,7 +971,8 @@
     try {
       const rows = await selectAll(TABLES.dailyReports);
       const remote = rows.map(dailyReportFromRow);
-      const pending = dailyReportPendingStore().dailyReports;
+      const userId = currentSession?.user?.id || currentProfile?.user_id || null;
+      const pending = Object.fromEntries(Object.entries(dailyReportPendingStore().dailyReports).filter(([, entry]) => entry.userId === userId));
       const pendingRows = Object.values(pending).map(entry => entry.item);
       const pendingKeys = new Set(pendingRows.map(dailyReportIdentity));
       writeDailyReportCache([...pendingRows, ...remote.filter(item => !pendingKeys.has(dailyReportIdentity(item)))]);
@@ -980,14 +999,17 @@
         method:"POST",
         body:{p_report:report,p_expected_version:options.expectedVersion ?? report.version ?? null}
       });
-      const canonical = dailyReportFromRow(Array.isArray(result) ? result[0] : result);
+      let canonical = dailyReportFromRow(unwrapDailyReportResponse(result));
+      if (!canonical || !canonical.id || !canonical.date) canonical = await findRemoteDailyReport(report);
+      if (!canonical) throw new Error("Supabase no devolvió el Registro Diario canónico.");
       cacheDailyReport({...canonical,syncState:"saved"});
       clearQueuedDailyReport(report, mutationId);
-      emitStatus("synced", "Registro Diario guardado");
+      emitStatus("synced", "Guardado en Supabase");
       return {success:true,pending:false,report:canonical};
     } catch (error) {
-      emitStatus("error", "Registro Diario pendiente de sincronizaci\u00f3n");
-      console.warn("No fue posible guardar Registro Diario en Supabase.", error);
+      const conflict = /conflict|version|409/i.test(String(error?.message || error));
+      emitStatus(conflict ? "conflict" : "error", conflict ? "Existe una versión más reciente" : "No se pudo sincronizar el Registro Diario");
+      console.warn("[Registro Diario] sincronización fallida", {work_id:report.workId,date:report.date,shift:report.shift,conflict});
       return {success:false,pending:true,report,error};
     }
   }
@@ -1017,7 +1039,8 @@
   }
 
   async function flushDailyReportPending() {
-    const entries = Object.values(dailyReportPendingStore().dailyReports);
+    const userId = currentSession?.user?.id || currentProfile?.user_id || null;
+    const entries = Object.values(dailyReportPendingStore().dailyReports).filter(entry => entry.userId === userId);
     for (const entry of entries) await saveDailyReportDraft(entry.item,{expectedVersion:entry.item.version ?? null});
     return {pending:Object.keys(dailyReportPendingStore().dailyReports).length};
   }
@@ -1059,7 +1082,12 @@
     confirmAutomatic:confirmDailyReportAutomatic,
     migrateLegacy:migrateLegacyDailyReports,
     flushPending:flushDailyReportPending,
-    getSyncStatus:() => ({pending:Object.keys(dailyReportPendingStore().dailyReports).length,status:{...lastStatus}})
+    getSyncStatus:(item=null) => {
+      const userId = currentSession?.user?.id || currentProfile?.user_id || null;
+      const entries = Object.values(dailyReportPendingStore().dailyReports).filter(entry => entry.userId === userId);
+      const active = item ? entries.find(entry => dailyReportIdentity(entry.item) === dailyReportIdentity(item)) : null;
+      return {pending:entries.length,status:active ? {state:"queued_offline",message:"Pendiente de sincronización"} : {...lastStatus}};
+    }
   });
 
   global.addEventListener("online", () => {

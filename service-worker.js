@@ -1,10 +1,10 @@
 "use strict";
 
-const CACHE_NAME = "gravi-sst-v2-shell-v26";
+const CACHE_NAME = "gravi-sst-v2-shell-v27";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./manifest.json?v=2026-07-11-daily-phase5",
+  "./manifest.json?v=2026-07-10-daily-sync",
   "./src/styles/styles.css?v=2026-07-07-hotfix-charset",
   "./src/styles/fixes.css?v=2026-07-07-hotfix-charset",
   "./src/styles/system.css?v=2026-07-07-hotfix-charset",
@@ -17,10 +17,10 @@ const APP_SHELL = [
   "./src/app.js?v=2026-07-07-hotfix-charset",
   "./src/supabase.js?v=2026-07-09-mobile-ux",
   "./src/repositories.js?v=2026-07-07-hotfix-charset",
-  "./src/bootstrap.js?v=2026-07-11-daily-phase5",
+  "./src/bootstrap.js?v=2026-07-10-daily-sync",
   "./src/corporate-documents.js?v=2026-07-07-hotfix-charset",
   "./src/extensions.js?v=2026-07-07-hotfix-charset",
-  "./src/system.js?v=2026-07-11-daily-phase5",
+  "./src/system.js?v=2026-07-10-daily-sync",
   "./src/dynamic-formats.js?v=2026-07-07-hotfix-charset",
   "./src/dynamic-formats-controller.js?v=2026-07-07-hotfix-charset",
   "./src/dynamic-formats-bootstrap.js?v=2026-07-07-hotfix-charset",

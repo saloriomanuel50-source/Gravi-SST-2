@@ -90,12 +90,12 @@ for (const reference of expectedIndexReferences) {
 }
 
 const bootstrap = read("src/bootstrap.js");
-for (const reference of ["./src/app.js", "./src/corporate-documents.js", "./src/extensions.js?v=2", "./src/system.js?v=2026-07-11-daily-phase5", "./src/pwa.js"]) {
+for (const reference of ["./src/app.js", "./src/corporate-documents.js", "./src/extensions.js?v=2", "./src/system.js?v=2026-07-10-daily-sync", "./src/pwa.js"]) {
   if (!bootstrap.includes(reference)) fail(`bootstrap.js no carga ${reference}`);
 }
 
 const serviceWorker = read("service-worker.js");
-for (const reference of ["./src/app.js", "./src/supabase.js", "./src/bootstrap.js?v=2026-07-11-daily-phase5", "./src/system.js?v=2026-07-11-daily-phase5", "./src/styles/phase5-2.css?v=17", "./assets/gravi-sst-logo-dark.png", "./assets/gravi-sst-login-panel.png", "./assets/gravi-sst-splash.png", "./assets/pwa-icon-192.png"]) {
+for (const reference of ["./src/app.js", "./src/supabase.js", "./src/bootstrap.js?v=2026-07-10-daily-sync", "./src/system.js?v=2026-07-10-daily-sync", "./src/styles/phase5-2.css?v=17", "./assets/gravi-sst-logo-dark.png", "./assets/gravi-sst-login-panel.png", "./assets/gravi-sst-splash.png", "./assets/pwa-icon-192.png"]) {
   if (!serviceWorker.includes(reference)) fail(`service-worker.js no precachea ${reference}`);
 }
 
