@@ -390,6 +390,7 @@ begin
     'ats', jsonb_build_object('source_available',false,'items','[]'::jsonb),
     'compliance', coalesce(v_compliance,'{}'::jsonb),
     'evidence', coalesce(r.automatic_data->'evidence','[]'::jsonb),
+    'manual_data', coalesce(r.manual_data,'{}'::jsonb),
     'source_timestamps', jsonb_build_object('captured_at',now(),'report_updated_at',r.updated_at)
   );
 end $$;
@@ -406,14 +407,12 @@ as $$
     select array_remove(array[
       case when coalesce(p_manual_data->>'dayStatus','')='' then 'day_status' end,
       case when coalesce(p_manual_data->>'activitySummary','')='' then 'activity_summary' end,
-      case when coalesce(p_manual_data->>'finalObservation','')='' then 'final_observation' end,
-      case when coalesce(p_snapshot->'workforce','{}'::jsonb)='{}'::jsonb then 'attendance' end,
-      case when coalesce(p_snapshot->'weather','{}'::jsonb)='{}'::jsonb then 'weather' end
+      case when coalesce(p_manual_data->>'finalObservation','')='' then 'final_observation' end
     ], null) fields
   )
   select jsonb_build_object(
     'missing_fields', to_jsonb(fields),
-    'percentage', greatest(0, 100 - cardinality(fields) * 20),
+    'percentage', round((1 - cardinality(fields)::numeric / 3) * 100)::integer,
     'status', case when cardinality(fields)=0 then 'complete' else 'incomplete' end
   ) from missing
 $$;
