@@ -9,7 +9,8 @@
   },
   "scripts": {
     "build": "node scripts/validate-build.js",
-    "validate": "node scripts/validate-build.js"
+    "validate": "node scripts/validate-build.js",
+    "test:permits": "node tests/work-permits.test.js"
   },
   "dependencies": {},
   "devDependencies": {}
