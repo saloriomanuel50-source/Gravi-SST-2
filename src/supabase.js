@@ -1105,9 +1105,45 @@
     flushPending:flushDynamicFormatsPending
   });
 
+  function workPermitRow(item={}) {
+    return {id:item.remoteId||item.id,folio:item.folio,development_name:item.developmentName||"",work_name:item.workName||"",contractor_name:item.contractorName||"",resident_name:item.residentName||"",requester_name:item.requesterName||"",activity:item.activity||"",description:item.description||"",execution_area:item.executionArea||"",worker_count:Number(item.workerCount||0),prepared_at:item.preparedAt||new Date().toISOString(),starts_at:item.startsAt||null,ends_at:item.endsAt||null,status:item.status||"draft",max_risk_level:item.maxRisk||"minimum",work_types:item.workTypes||[],activity_controls:item.controls||{},hazards:item.hazards||[],ppe:item.ppe||[],additional_equipment:[...(item.equipment||[]),...(item.otherEquipment?[item.otherEquipment]:[])],preventive_measures:item.preventive||[],participants:item.participants||[],additional_requirements:item.additionalRequirements||"",extensions:item.extensions||[],document_code:item.documentCode||"GVC-SSH-FMT-002",form_version:item.formVersion||"00",revision:Number(item.version||1),client_mutation_id:item.clientMutationId||item.id};
+  }
+  function workPermitFromRow(row={}) {
+    return {id:row.id,remoteId:row.id,clientMutationId:row.client_mutation_id||row.id,folio:row.folio,developmentName:row.development_name,workName:row.work_name,contractorName:row.contractor_name,residentName:row.resident_name,requesterName:row.requester_name,activity:row.activity,description:row.description,executionArea:row.execution_area,workerCount:row.worker_count,preparedAt:row.prepared_at,startsAt:row.starts_at,endsAt:row.ends_at,status:row.status,maxRisk:row.max_risk_level,workTypes:row.work_types||[],controls:row.activity_controls||{},hazards:row.hazards||[],ppe:row.ppe||[],equipment:row.additional_equipment||[],preventive:row.preventive_measures||[],participants:row.participants||[],additionalRequirements:row.additional_requirements||"",extensions:row.extensions||[],documentCode:row.document_code,formVersion:row.form_version,version:Number(row.revision||1),authorizedSnapshot:row.authorized_snapshot,pdfUrl:row.pdf_url,remoteUpdatedAt:row.updated_at,syncState:"synced"};
+  }
+  async function listWorkPermits() {
+    if (!configured || !currentSession?.access_token) return [];
+    const rows=await request(TABLES.workPermits,{query:"?select=*&order=updated_at.desc"});
+    return (rows||[]).map(workPermitFromRow);
+  }
+  async function upsertWorkPermit(item, expectedUpdatedAt=null) {
+    if (!configured || !currentSession?.access_token) throw new Error("La sincronización requiere una sesión activa.");
+    if (expectedUpdatedAt && item.remoteId) {
+      const current=await request(TABLES.workPermits,{query:`?id=eq.${encodeURIComponent(item.remoteId)}&select=updated_at`});
+      if (current?.[0]?.updated_at && current[0].updated_at!==expectedUpdatedAt) { const error=new Error("Conflicto: el permiso remoto fue modificado.");error.code="WORK_PERMIT_CONFLICT";throw error; }
+    }
+    const rows=await request(TABLES.workPermits,{method:"POST",query:"?on_conflict=client_mutation_id",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:workPermitRow(item)});
+    return workPermitFromRow(Array.isArray(rows)?rows[0]:rows);
+  }
+  async function transitionWorkPermit(id,toStatus,observations="") {
+    if (!configured || !currentSession?.access_token) throw new Error("La transición requiere conexión y sesión activa.");
+    const rows=await request("rpc/transition_work_permit",{method:"POST",body:{p_permit_id:id,p_to_status:toStatus,p_observations:observations}});
+    return workPermitFromRow(Array.isArray(rows)?rows[0]:rows);
+  }
+  async function uploadWorkPermitFile({permitId,workId,type,fileName,mimeType,data}) {
+    if (!configured || !currentSession?.access_token) throw new Error("La carga requiere conexión y sesión activa.");
+    const safeType=String(type||"general").replace(/[^a-z0-9_-]/gi,"_");
+    const safeName=String(fileName||`${crypto.randomUUID()}.jpg`).replace(/[^a-z0-9._-]/gi,"_");
+    const storagePath=`work-permits/${workId||"unassigned"}/${permitId}/${safeType}/${crypto.randomUUID()}-${safeName}`;
+    const response=await fetch(`${config.url}/storage/v1/object/evidencias/${storagePath}`,{method:"POST",headers:{Authorization:`Bearer ${currentSession.access_token}`,apikey:config.anonKey,"Content-Type":mimeType||"application/octet-stream","x-upsert":"false"},body:data});
+    if(!response.ok)throw new Error(await response.text()||"No fue posible cargar la evidencia.");
+    return storagePath;
+  }
+  const workPermits=Object.freeze({list:listWorkPermits,upsert:upsertWorkPermit,transition:transitionWorkPermit,uploadFile:uploadWorkPermitFile});
+
   global.GraviSupabase = {
     bootstrap, login, logout, scheduleSystemSync, syncSystemData, upsertRecord, syncRecords,
-    listProfiles, updateProfile, inviteUser, updatePassword, processAuthRedirect, clearAuthRedirectUrl, hasAuthRedirect, can, canPermission, dynamicFormats, dailyReports,
+    listProfiles, updateProfile, inviteUser, updatePassword, processAuthRedirect, clearAuthRedirectUrl, hasAuthRedirect, can, canPermission, dynamicFormats, dailyReports, workPermits,
     permissionGroups:() => clone(PERMISSION_GROUPS),
     roleDefaultPermissions:role => permissionDefaults(role),
     getProfilePermissions:profile => ({settings:permissionSettingsFor(profile || currentProfile || {}), effective:effectivePermissions(profile || currentProfile || {})}),
