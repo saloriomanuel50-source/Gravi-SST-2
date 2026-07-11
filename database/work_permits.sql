@@ -130,8 +130,18 @@ drop policy if exists work_permit_approvals_insert on public.work_permit_approva
 create policy work_permit_approvals_insert on public.work_permit_approvals for insert with check(user_id=auth.uid() and (public.has_work_permit_permission('permits.review') or public.has_work_permit_permission('permits.authorize') or public.has_work_permit_permission('permits.close')));
 drop policy if exists work_permit_evidence_insert on public.work_permit_evidence;
 create policy work_permit_evidence_insert on public.work_permit_evidence for insert with check(created_by=auth.uid() and public.has_work_permit_permission('permits.edit'));
+drop policy if exists work_permit_evidence_delete on public.work_permit_evidence;
+create policy work_permit_evidence_delete on public.work_permit_evidence for delete using(created_by=auth.uid() and public.has_work_permit_permission('permits.edit'));
 drop policy if exists work_permit_history_insert on public.work_permit_history;
 create policy work_permit_history_insert on public.work_permit_history for insert with check(user_id=auth.uid());
 
 comment on table public.work_permits is 'Permiso General de Trabajo GVC-SSH-FMT-002; columnas consultables más contenido dinámico JSONB.';
 comment on column public.work_permits.authorized_snapshot is 'Copia inalterable de los datos al autorizar; no debe actualizarse después de creada.';
+
+-- Reutiliza el bucket institucional evidencias. La ruta debe iniciar con work-permits/.
+drop policy if exists work_permits_storage_select on storage.objects;
+create policy work_permits_storage_select on storage.objects for select to authenticated using(bucket_id='evidencias' and name like 'work-permits/%' and public.has_work_permit_permission('permits.view'));
+drop policy if exists work_permits_storage_insert on storage.objects;
+create policy work_permits_storage_insert on storage.objects for insert to authenticated with check(bucket_id='evidencias' and name like 'work-permits/%' and public.has_work_permit_permission('permits.edit'));
+drop policy if exists work_permits_storage_delete on storage.objects;
+create policy work_permits_storage_delete on storage.objects for delete to authenticated using(bucket_id='evidencias' and name like 'work-permits/%' and owner_id=auth.uid()::text and public.has_work_permit_permission('permits.edit'));

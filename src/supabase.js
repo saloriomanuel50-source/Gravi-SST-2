@@ -1139,7 +1139,11 @@
     if(!response.ok)throw new Error(await response.text()||"No fue posible cargar la evidencia.");
     return storagePath;
   }
-  const workPermits=Object.freeze({list:listWorkPermits,upsert:upsertWorkPermit,transition:transitionWorkPermit,uploadFile:uploadWorkPermitFile});
+  async function saveWorkPermitEvidence(metadata) {
+    const rows=await request("work_permit_evidence",{method:"POST",headers:{Prefer:"return=representation"},body:{permit_id:metadata.permitId,control_key:metadata.controlKey||null,evidence_type:metadata.type,storage_path:metadata.storagePath,caption:metadata.caption||"",metadata:metadata.metadata||{},created_by:currentSession.user.id}});
+    return Array.isArray(rows)?rows[0]:rows;
+  }
+  const workPermits=Object.freeze({list:listWorkPermits,upsert:upsertWorkPermit,transition:transitionWorkPermit,uploadFile:uploadWorkPermitFile,saveEvidence:saveWorkPermitEvidence});
 
   global.GraviSupabase = {
     bootstrap, login, logout, scheduleSystemSync, syncSystemData, upsertRecord, syncRecords,
