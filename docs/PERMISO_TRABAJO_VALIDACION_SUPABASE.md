@@ -4,6 +4,10 @@
 
 Use un proyecto Supabase de desarrollo aislado que replique el esquema actual. No use producción. Antes de comenzar exporte el esquema y las tablas `perfiles_usuario`, `obras`, `contratistas`, `trabajadores` y Storage; registre URL, fecha y responsable del respaldo.
 
+## Resultado del cierre técnico 11/07/2026
+
+No se identificó ni autorizó un proyecto Supabase de prueba. La aplicación local informó que Supabase no está configurado. Por tanto no se ejecutó el SQL ni se crearon usuarios/datos. Primera ejecución, segunda ejecución, RLS, Storage, historial y snapshot permanecen **pendientes**, no fallidos ni aprobados. No se utilizó producción.
+
 ## Ejecución e idempotencia
 
 1. Abra SQL Editor en el proyecto de prueba.

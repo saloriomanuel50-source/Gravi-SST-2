@@ -21,7 +21,11 @@
 
 ## Validación visual no ejecutable
 
-`package.json` no contiene `dev` ni `start`; sólo build, validate y test. El navegador integrado bloqueó `file://`. No se creó un servidor alternativo. Por tanto no hay evidencia válida de escritorio, 390×844, PDF o consola y no se generaron capturas.
+El 11/07/2026 se agregó y probó `npm.cmd run dev` en `http://localhost:4173`. Shell, CSS, JS, manifest, service worker y rutas de permisos respondieron 200; un recurso inexistente respondió 404 y traversal codificado respondió 403. En navegador no hubo errores de consola.
+
+La validación funcional quedó bloqueada antes del módulo: la pantalla mostró `Supabase no esta configurado en este despliegue.` No se usaron credenciales ni producción. En 390×844, la pantalla de autenticación tuvo `clientWidth=390` y `scrollWidth=390`, pero esto no aprueba la adaptabilidad del formulario.
+
+Evidencias del bloqueo: `docs/evidencias/permiso-validacion-login-escritorio.png` y `docs/evidencias/permiso-validacion-login-movil-390x844.png`.
 
 ## Pendientes
 
@@ -29,6 +33,8 @@
 - Doble ejecución SQL, CRUD, roles/RLS, aprobaciones, historial, evidencia y snapshot.
 - Storage: compresión, carga, lectura, eliminación y acceso por obra.
 - PDF: Carta 100 %, páginas, firmas, pie, URL e inmutabilidad histórica.
-- Sincronización: `gvc-work-permits-pending-v1` no tiene un upsert remoto que vacíe la cola; sólo notifica pendientes al reconectar.
+- Sincronización: se implementó upsert, orden, intentos, propietario, versión y conflicto; falta probarlo contra Supabase y otro navegador.
+- Evidencias: se implementó compresión/carga/metadatos y políticas; faltan las pruebas remotas JPG/PNG/accesos/eliminación.
+- PDF: `window.print()` no produce un Blob PDF. Persistencia PDF continúa bloqueada; no se guardó HTML fingiendo ser PDF.
 
 No se declara listo para producción.

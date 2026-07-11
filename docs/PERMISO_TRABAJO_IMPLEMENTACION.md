@@ -6,6 +6,8 @@ La validación final tomó como autoridad `docs/referencias/GVC-SSH-FMT-002 Perm
 
 El modelo propone `work_permits`, `work_permit_approvals`, `work_permit_evidence` y `work_permit_history`, con RLS y permisos personalizados. El service worker permanece en `v28`.
 
-Pendientes: la cola local todavía no demuestra sincronización remota con `work_permits`; carga/compresión de evidencia y persistencia PDF no están conectadas al módulo; RLS por transición debe endurecerse y probarse; Storage requiere políticas reales. No está listo para producción.
+El cierre técnico añadió servidor Node nativo, cola remota con upsert/conflictos, RPC y trigger de transiciones, protección del snapshot, compresión/carga de evidencias y políticas Storage. El caché avanzó a `v31`.
+
+Pendientes: ejecutar dos veces el SQL, probar cuatro perfiles y transiciones, comprobar sincronización/evidencia en remoto, generar y persistir un PDF real, y aprobar los diez casos, móvil e impresión. No está listo para producción.
 
 No se realizó despliegue a Vercel ni se ejecutó SQL contra producción.
