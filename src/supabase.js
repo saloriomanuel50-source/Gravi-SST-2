@@ -25,6 +25,7 @@
     compliance: "cumplimiento_estado",
     profiles: "perfiles_usuario",
     dailyReports: "registro_diario"
+    ,workPermits: "work_permits"
   };
 
   let config = null;
@@ -38,7 +39,7 @@
   const PERMISSION_GROUPS = Object.freeze([
     {id:"catalogs",label:"Cat\u00e1logos",permissions:[["works.view","Ver desarrollos y obras"],["developments.create","Crear desarrollos"],["developments.edit","Editar desarrollos"],["developments.archive","Archivar desarrollos"],["works.create","Crear obras"],["works.edit","Editar obras"],["works.archive","Archivar obras"]]},
     {id:"workforce",label:"Fuerza de trabajo",permissions:[["contractors.view","Ver contratistas"],["contractors.create","Crear contratistas"],["contractors.edit","Editar contratistas"],["contractors.archive","Archivar contratistas"],["workers.view","Ver trabajadores"],["workers.create","Crear trabajadores"],["workers.edit","Editar trabajadores"],["workers.archive","Archivar trabajadores"],["visitors.view","Ver visitantes"],["visitors.register","Registrar visitantes"]]},
-    {id:"operation",label:"Operaci\u00f3n",permissions:[["attendance.view","Ver asistencia"],["attendance.register","Registrar asistencia"],["attendance.edit","Editar asistencia"],["operations.view","Ver operaciones"],["inspections.create","Crear inspecciones"],["inspections.edit","Editar inspecciones"],["incidents.view","Ver incidencias"],["incidents.create","Crear incidencias"],["incidents.edit","Editar incidencias"]]},
+    {id:"operation",label:"Operaci\u00f3n",permissions:[["attendance.view","Ver asistencia"],["attendance.register","Registrar asistencia"],["attendance.edit","Editar asistencia"],["operations.view","Ver operaciones"],["inspections.create","Crear inspecciones"],["inspections.edit","Editar inspecciones"],["incidents.view","Ver incidencias"],["incidents.create","Crear incidencias"],["incidents.edit","Editar incidencias"],["permits.view","Ver permisos de trabajo"],["permits.create","Crear permisos de trabajo"],["permits.edit","Editar permisos de trabajo"],["permits.review","Revisar permisos de trabajo"],["permits.authorize","Autorizar permisos de trabajo"],["permits.suspend","Suspender permisos de trabajo"],["permits.cancel","Cancelar permisos de trabajo"],["permits.close","Cerrar permisos de trabajo"],["permits.export","Exportar permisos de trabajo"]]},
     {id:"compliance",label:"Cumplimiento",permissions:[["compliance.view","Ver cumplimiento"],["compliance.edit","Editar cumplimiento"],["compliance.monthly_report","Generar reporte mensual"],["compliance.nom_matrix","Administrar matriz NOM"]]},
     {id:"intelligence",label:"Inteligencia",permissions:[["documents.view","Ver documentos"],["documents.generate","Generar documentos/PDF"],["reports.view","Ver reportes"],["reports.generate","Generar reportes"],["histories.global","Ver hist\u00f3ricos generales"],["histories.work","Ver hist\u00f3ricos de obra"],["audit.view","Ver bit\u00e1cora"]]},
     {id:"administration",label:"Administraci\u00f3n",permissions:[["users.invite","Invitar usuarios"],["users.edit","Editar usuarios"],["users.change_roles","Cambiar roles"],["users.manage_permissions","Editar permisos"],["users.deactivate","Desactivar usuarios"]]}
@@ -47,7 +48,7 @@
   const READ_PERMISSION_KEYS = ALL_PERMISSION_KEYS.filter(key => key.endsWith(".view") || key.startsWith("histories.") || key === "audit.view" || key === "works.view");
   const ROLE_PERMISSION_KEYS = Object.freeze({
     "Administrador":ALL_PERMISSION_KEYS,
-    "Supervisor SST":["works.view","contractors.view","contractors.create","contractors.edit","workers.view","workers.create","workers.edit","visitors.view","visitors.register","attendance.view","attendance.register","attendance.edit","operations.view","inspections.create","inspections.edit","incidents.view","incidents.create","incidents.edit","compliance.view","compliance.edit","compliance.monthly_report","documents.view","documents.generate","reports.view","reports.generate","histories.work","audit.view"],
+    "Supervisor SST":["works.view","contractors.view","contractors.create","contractors.edit","workers.view","workers.create","workers.edit","visitors.view","visitors.register","attendance.view","attendance.register","attendance.edit","operations.view","inspections.create","inspections.edit","incidents.view","incidents.create","incidents.edit","permits.view","permits.create","permits.edit","permits.review","permits.authorize","permits.suspend","permits.cancel","permits.close","permits.export","compliance.view","compliance.edit","compliance.monthly_report","documents.view","documents.generate","reports.view","reports.generate","histories.work","audit.view"],
     "Consulta":READ_PERMISSION_KEYS
   });
 
