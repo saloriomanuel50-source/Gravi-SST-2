@@ -55,7 +55,7 @@ La matriz visible en la referencia usa frecuencias Remota, Alejada, Ocasional, R
 - La caché puede servir archivos antiguos: se incrementará una sola vez al cierre.
 - Catálogos históricos pueden cambiar: el permiso autorizado guardará instantáneas inalterables.
 - Autorización offline no es segura: sólo se encolarán borradores; las decisiones requieren Supabase.
-- El Excel oficial no estuvo incluido entre los adjuntos disponibles; se usa la imagen suministrada y el código documental indicado. Debe compararse contra el Excel antes de afirmar equivalencia documental final.
+- El Excel oficial quedó disponible para la validación final y se comparó en `docs/PERMISO_TRABAJO_COMPARACION_EXCEL.md`. La autoridad confirmó versión 00 y matriz 5×4; ambas diferencias fueron corregidas.
 
 ## Validación base
 

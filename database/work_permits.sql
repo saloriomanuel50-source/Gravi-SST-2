@@ -17,7 +17,7 @@ create table if not exists public.work_permits (
   work_types jsonb not null default '[]', activity_controls jsonb not null default '{}', hazards jsonb not null default '[]',
   ppe jsonb not null default '[]', additional_equipment jsonb not null default '[]', preventive_measures jsonb not null default '[]',
   participants jsonb not null default '[]', additional_requirements text not null default '', validity jsonb not null default '{}', extensions jsonb not null default '[]',
-  closure jsonb not null default '{}', document_code text not null default 'GVC-SSH-FMT-002', form_version text not null default '01', revision integer not null default 1,
+  closure jsonb not null default '{}', document_code text not null default 'GVC-SSH-FMT-002', form_version text not null default '00', revision integer not null default 1,
   authorized_snapshot jsonb, pdf_url text, authorized_at timestamptz, authorized_by uuid,
   created_by uuid not null default auth.uid(), created_at timestamptz not null default now(), updated_at timestamptz not null default now(), client_mutation_id uuid unique
 );

@@ -1,22 +1,34 @@
 # Pruebas del Permiso de Trabajo
 
+## Correcciones verificadas
+
+| Problema | Causa | Archivo | Solución | Prueba |
+|---|---|---|---|---|
+| Matriz 5×5 incorrecta | Transcripción desde imagen | JS | Matriz oficial 5×4 | 20/20 aserciones |
+| Denominaciones incorrectas | No se había leído el Excel | JS/docs/tests | Aislada, cuatro severidades, Grave | `test:permits` |
+| Versión 01 | Valor no contrastado | JS/SQL | Versión 00 | build/búsqueda |
+| Catálogos genéricos | Fuente incompleta | JS | Peligros, EPP, equipo y 24 medidas oficiales | comparación A1:J64 |
+| Residual no editable | Tabla sólo inicial | JS | Frecuencia, severidad y resultado residual | prueba/código |
+| Rechazo/permisos parciales | Flujo incompleto | JS | Rechazo y permiso por acción | sintaxis/build; RLS pendiente |
+| PDF incompleto | Vista basada en imagen | JS/CSS | Textos, bandas, extensiones, firmas y pie | HTML/CSS; impresión pendiente |
+| Riesgo de overflow móvil | Grillas rígidas | CSS | `minmax(0,1fr)` y contención | CSS; navegador pendiente |
+
 ## Automatizadas ejecutadas
 
 - `node --check src/work-permits.js`: correcto.
-- `npm.cmd run test:permits`: correcto; estructura 5 × 5 y puntos de control.
+- `npm.cmd run test:permits`: 20/20 equivalencias, máximo y residual correctos.
 - `npm.cmd run build`: correcto.
 
-## Casos pendientes de validación interactiva
+## Validación visual no ejecutable
 
-Requieren sesión Supabase, catálogos reales y navegador: creación/reapertura, combinaciones altura + caliente, bloqueo crítico, permisos por usuario, suspensión, extensiones, cierre con evidencia, impresión carta, móvil, sincronización entre dispositivos y ausencia de errores de consola.
+`package.json` no contiene `dev` ni `start`; sólo build, validate y test. El navegador integrado bloqueó `file://`. No se creó un servidor alternativo. Por tanto no hay evidencia válida de escritorio, 390×844, PDF o consola y no se generaron capturas.
 
-La ejecución SQL doble, RLS real, carga a Storage, generación/almacenamiento de PDF y comparación lado a lado con el Excel no se realizaron porque no se proporcionaron credenciales ni el archivo `.xls`. Estas validaciones son obligatorias antes de declarar terminado el módulo para producción.
+## Pendientes
 
-## Validación manual exacta
+- Los 10 casos interactivos solicitados.
+- Doble ejecución SQL, CRUD, roles/RLS, aprobaciones, historial, evidencia y snapshot.
+- Storage: compresión, carga, lectura, eliminación y acceso por obra.
+- PDF: Carta 100 %, páginas, firmas, pie, URL e inmutabilidad histórica.
+- Sincronización: `gvc-work-permits-pending-v1` no tiene un upsert remoto que vacíe la cola; sólo notifica pendientes al reconectar.
 
-1. Ejecute `database/work_permits.sql` dos veces en un proyecto de prueba.
-2. Inicie GRAVI SST con configuración Supabase válida y abra una obra con contratista y trabajadores.
-3. Recorra los diez casos de aceptación de la especificación usando Administrador, Supervisor SST, Consulta y un perfil personalizado.
-4. Active modo offline en DevTools, edite un borrador, reconecte y confirme una sola mutación.
-5. Imprima a Carta, escala 100 %, y compare contra el Excel oficial.
-6. Capture listado, formulario, controles dinámicos, formato oficial, móvil y PDF sólo después de aprobar la comparación.
+No se declara listo para producción.
