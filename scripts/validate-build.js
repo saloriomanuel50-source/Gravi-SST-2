@@ -17,6 +17,7 @@ const requiredFiles = [
   "src/pwa.js",
   "src/supabase.js",
   "src/system.js",
+  "src/signatures.js",
   "src/styles/styles.css",
   "src/styles/fixes.css",
   "src/styles/system.css",
@@ -26,6 +27,7 @@ const requiredFiles = [
   "src/styles/phase4.css",
   "src/styles/phase5.css",
   "src/styles/phase5-2.css",
+  "src/styles/signatures.css",
   "assets/gravi-sst-logo-dark.png",
   "assets/gravi-sst-login-panel.png",
   "assets/gravi-sst-splash.png",
@@ -37,6 +39,7 @@ const requiredFiles = [
   "database/registro_diario.sql",
   "database/daily_reports_v2.sql",
   "database/storage_evidencias.sql"
+  ,"database/document_signatures.sql"
 ];
 
 function fail(message) {

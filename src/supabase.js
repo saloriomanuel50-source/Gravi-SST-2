@@ -1145,10 +1145,25 @@
     return Array.isArray(rows)?rows[0]:rows;
   }
   const workPermits=Object.freeze({list:listWorkPermits,upsert:upsertWorkPermit,transition:transitionWorkPermit,uploadFile:uploadWorkPermitFile,saveEvidence:saveWorkPermitEvidence});
+  async function uploadDocumentSignature(item) {
+    if (!configured || !currentSession?.access_token) throw new Error("La firma requiere conexión y sesión activa.");
+    const safe=value=>String(value||"unknown").replace(/[^a-z0-9_-]/gi,"_");
+    const storagePath=`${safe(item.documentType)}/${safe(item.documentId)}/v${safe(item.documentVersion)}/${safe(item.signatureSlot)}/${item.clientUuid}.png`;
+    const uploaded=await fetch(`${config.url}/storage/v1/object/document-signatures/${storagePath}`,{method:"POST",headers:{Authorization:`Bearer ${currentSession.access_token}`,apikey:config.anonKey,"Content-Type":"image/png","x-upsert":"false"},body:item.blob});
+    if(!uploaded.ok&&!/already exists/i.test(await uploaded.text()))throw new Error("No fue posible cargar la firma manuscrita.");
+    const body={client_uuid:item.clientUuid,document_type:item.documentType,document_id:item.documentId,document_version:item.documentVersion,signature_slot:item.signatureSlot,signer_type:item.signerType,signer_user_id:item.signerUserId,signer_name:item.signerName,signer_position:item.signerPosition,signer_company:item.signerCompany,signer_role_label:item.signerRoleLabel,signature_storage_path:storagePath,strokes_data:item.strokesData,acceptance_text:item.acceptanceText,acceptance_confirmed:item.acceptanceConfirmed,signed_at:item.signedAt,captured_by_user_id:item.capturedByUserId,captured_in_presence_of_user_id:item.capturedInPresenceOfUserId,document_content_hash:item.documentContentHash,document_status_at_signing:item.documentStatusAtSigning,signature_status:"valid"};
+    const rows=await request("document_signatures",{method:"POST",query:"?on_conflict=client_uuid",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body});const signature=Array.isArray(rows)?rows[0]:rows;
+    await request("document_signature_events",{method:"POST",headers:{Prefer:"return=minimal"},returnMinimal:true,body:{signature_id:signature.id,event_type:"sync_completed",details:{storage_path:storagePath},actor_user_id:currentSession.user.id}});
+    return signature;
+  }
+  async function listDocumentSignatures(documentType,documentId){if(!configured||!currentSession?.access_token)return[];return request("document_signatures",{query:`?document_type=eq.${encodeURIComponent(documentType)}&document_id=eq.${encodeURIComponent(documentId)}&select=*&order=signed_at.asc`})}
+  async function invalidateDocumentSignatures(documentType,documentId,documentVersion,reason){return request("rpc/invalidate_document_signatures",{method:"POST",body:{p_document_type:documentType,p_document_id:documentId,p_document_version:documentVersion,p_reason:reason}})}
+  async function signedSignatureUrl(path,expiresIn=900){const response=await fetch(`${config.url}/storage/v1/object/sign/document-signatures/${path}`,{method:"POST",headers:{Authorization:`Bearer ${currentSession.access_token}`,apikey:config.anonKey,"Content-Type":"application/json"},body:JSON.stringify({expiresIn})});if(!response.ok)throw new Error("No fue posible consultar la firma.");const data=await response.json();return`${config.url}/storage/v1${data.signedURL}`}
+  const signatures=Object.freeze({upload:uploadDocumentSignature,list:listDocumentSignatures,invalidate:invalidateDocumentSignatures,signedUrl:signedSignatureUrl});
 
   global.GraviSupabase = {
     bootstrap, login, logout, scheduleSystemSync, syncSystemData, upsertRecord, syncRecords,
-    listProfiles, updateProfile, inviteUser, updatePassword, processAuthRedirect, clearAuthRedirectUrl, hasAuthRedirect, can, canPermission, dynamicFormats, dailyReports, workPermits,
+    listProfiles, updateProfile, inviteUser, updatePassword, processAuthRedirect, clearAuthRedirectUrl, hasAuthRedirect, can, canPermission, dynamicFormats, dailyReports, workPermits, signatures,
     permissionGroups:() => clone(PERMISSION_GROUPS),
     roleDefaultPermissions:role => permissionDefaults(role),
     getProfilePermissions:profile => ({settings:permissionSettingsFor(profile || currentProfile || {}), effective:effectivePermissions(profile || currentProfile || {})}),

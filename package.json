@@ -12,6 +12,7 @@
     "build": "node scripts/validate-build.js",
     "validate": "node scripts/validate-build.js",
     "test:permits": "node tests/work-permits.test.js"
+    ,"test:signatures": "node tests/signatures.test.js"
   },
   "dependencies": {},
   "devDependencies": {}

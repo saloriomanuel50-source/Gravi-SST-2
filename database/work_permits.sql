@@ -64,7 +64,7 @@ drop trigger if exists work_permits_touch on public.work_permits;
 create trigger work_permits_touch before update on public.work_permits for each row execute function public.touch_work_permit();
 
 create or replace function public.validate_work_permit_update() returns trigger language plpgsql security definer set search_path=public as $$
-declare required_permission text;
+declare required_permission text; required_signatures integer;
 begin
   if old.authorized_snapshot is not null and new.authorized_snapshot is distinct from old.authorized_snapshot then
     raise exception 'La instantánea autorizada es inalterable';
@@ -84,6 +84,11 @@ begin
       when new.status='closed' then 'permits.close' end;
     if not public.has_work_permit_permission(required_permission) then raise exception 'Permiso insuficiente: %',required_permission; end if;
     if new.status='authorized' and new.max_residual_risk_level='critical' then raise exception 'No se puede autorizar un permiso con riesgo residual crítico'; end if;
+    if new.status in ('authorized','active') and to_regclass('public.document_signatures') is not null then
+      select count(*) into required_signatures from public.document_signatures where document_type='work_permit' and document_id=new.id and signature_status='valid' and
+        (signature_slot='sst_supervisor' or (new.status='active' and signature_slot='contractor_responsible'));
+      if (new.status='authorized' and required_signatures<1) or (new.status='active' and required_signatures<2) then raise exception 'Faltan firmas manuscritas vigentes y sincronizadas'; end if;
+    end if;
   elsif not public.has_work_permit_permission('permits.edit') then
     raise exception 'Permiso insuficiente: permits.edit';
   end if;
