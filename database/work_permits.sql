@@ -13,7 +13,10 @@ create table if not exists public.work_permits (
   resident_name text not null default '', requester_name text not null default '', activity text not null default '',
   description text not null default '', execution_area text not null default '', worker_count integer not null default 0 check(worker_count >= 0),
   prepared_at timestamptz not null default now(), starts_at timestamptz, ends_at timestamptz,
-  status public.work_permit_status not null default 'draft', max_risk_level text not null default 'minimum' check(max_risk_level in ('minimum','medium','high','critical')),
+  workflow_mode text not null default 'supervisor_direct' check(workflow_mode in ('supervisor_direct','contractor_request')),
+  contractor_responsible text not null default '', contractor_role text not null default '', prepared_by_supervisor text not null default '', authorized_by_supervisor text not null default '',
+  contractor_user_id uuid, contractor_acknowledgement jsonb, contractor_signature text, contractor_signed_at timestamptz, contractor_request_status text,
+  status public.work_permit_status not null default 'draft', max_risk_level text not null default 'minimum' check(max_risk_level in ('minimum','medium','high','critical')), max_residual_risk_level text not null default 'minimum' check(max_residual_risk_level in ('minimum','medium','high','critical')),
   work_types jsonb not null default '[]', activity_controls jsonb not null default '{}', hazards jsonb not null default '[]',
   ppe jsonb not null default '[]', additional_equipment jsonb not null default '[]', preventive_measures jsonb not null default '[]',
   participants jsonb not null default '[]', additional_requirements text not null default '', validity jsonb not null default '{}', extensions jsonb not null default '[]',
@@ -21,6 +24,17 @@ create table if not exists public.work_permits (
   authorized_snapshot jsonb, pdf_url text, authorized_at timestamptz, authorized_by uuid,
   created_by uuid not null default auth.uid(), created_at timestamptz not null default now(), updated_at timestamptz not null default now(), client_mutation_id uuid unique
 );
+alter table public.work_permits add column if not exists workflow_mode text not null default 'supervisor_direct';
+alter table public.work_permits add column if not exists contractor_responsible text not null default '';
+alter table public.work_permits add column if not exists contractor_role text not null default '';
+alter table public.work_permits add column if not exists prepared_by_supervisor text not null default '';
+alter table public.work_permits add column if not exists authorized_by_supervisor text not null default '';
+alter table public.work_permits add column if not exists contractor_user_id uuid;
+alter table public.work_permits add column if not exists contractor_acknowledgement jsonb;
+alter table public.work_permits add column if not exists contractor_signature text;
+alter table public.work_permits add column if not exists contractor_signed_at timestamptz;
+alter table public.work_permits add column if not exists contractor_request_status text;
+alter table public.work_permits add column if not exists max_residual_risk_level text not null default 'minimum';
 create index if not exists work_permits_work_status_idx on public.work_permits(work_id,status);
 create index if not exists work_permits_dates_idx on public.work_permits(starts_at,ends_at);
 create index if not exists work_permits_contractor_idx on public.work_permits(contractor_id);
@@ -56,7 +70,8 @@ begin
     raise exception 'La instantánea autorizada es inalterable';
   end if;
   if new.status is distinct from old.status then
-    if not ((old.status='draft' and new.status='pending_review') or (old.status='rejected' and new.status='pending_review') or
+    if not ((old.workflow_mode='supervisor_direct' and old.status='draft' and new.status='authorized') or
+      (old.status='draft' and new.status='pending_review') or (old.status='rejected' and new.status='pending_review') or
       (old.status='pending_review' and new.status in ('authorized','rejected')) or (old.status='authorized' and new.status='active') or
       (old.status='active' and new.status in ('suspended','cancelled','expired','closed')) or (old.status='suspended' and new.status in ('active','cancelled'))) then
       raise exception 'Transición de permiso inválida: % -> %',old.status,new.status;
@@ -68,6 +83,7 @@ begin
       when new.status in ('cancelled','expired') then 'permits.cancel'
       when new.status='closed' then 'permits.close' end;
     if not public.has_work_permit_permission(required_permission) then raise exception 'Permiso insuficiente: %',required_permission; end if;
+    if new.status='authorized' and new.max_residual_risk_level='critical' then raise exception 'No se puede autorizar un permiso con riesgo residual crítico'; end if;
   elsif not public.has_work_permit_permission('permits.edit') then
     raise exception 'Permiso insuficiente: permits.edit';
   end if;

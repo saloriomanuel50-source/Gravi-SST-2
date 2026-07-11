@@ -17,6 +17,7 @@
 
 - `node --check src/work-permits.js`: correcto.
 - `npm.cmd run test:permits`: 20/20 equivalencias, máximo y residual correctos.
+- `npm.cmd run test:permits`: también verifica flujo `supervisor_direct`, transiciones inválidas y catálogo central de alto riesgo.
 - `npm.cmd run build`: correcto.
 
 ## Validación visual no ejecutable

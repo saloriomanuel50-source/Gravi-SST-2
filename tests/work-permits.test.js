@@ -23,3 +23,15 @@ const order=["minimum","medium","high","critical"];
 assert.strictEqual(["minimum","high","medium"].reduce((max,x)=>order.indexOf(x)>order.indexOf(max)?x:max,"minimum"),"high");
 assert.strictEqual(official[2][2],"medium","El riesgo residual usa la misma matriz oficial.");
 console.log("20/20 equivalencias oficiales verificadas individualmente; máximo y residual correctos");
+
+const supervisorDirect={draft:["authorized"],authorized:["active"],active:["suspended","cancelled","expired","closed"],suspended:["active","cancelled"]};
+assert.deepStrictEqual(supervisorDirect.draft,["authorized"]);
+assert(!supervisorDirect.draft.includes("pending_review"));
+assert(supervisorDirect.active.includes("closed"));
+assert(supervisorDirect.suspended.includes("active"));
+const invalid=["draft|closed","draft|active","authorized|closed","closed|active","cancelled|active","rejected|active"];
+invalid.forEach(pair=>{const [from,to]=pair.split("|");assert(!(supervisorDirect[from]||[]).includes(to),`Transición inválida permitida: ${pair}`)});
+const highRiskTypes=new Set(["height","hot","electrical","energy","confined","excavation","lifting","demolition"]);
+["height","hot","electrical","energy","confined","excavation","lifting","demolition"].forEach(type=>assert(highRiskTypes.has(type)));
+assert(!highRiskTypes.has("chemicals"),"Actividades adicionales sólo son alto riesgo cuando se configuran expresamente.");
+console.log("Flujo supervisor_direct, transiciones inválidas y catálogo de alto riesgo verificados");

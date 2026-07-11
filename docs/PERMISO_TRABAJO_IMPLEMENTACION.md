@@ -8,6 +8,8 @@ El modelo propone `work_permits`, `work_permit_approvals`, `work_permit_evidence
 
 El cierre técnico añadió servidor Node nativo, cola remota con upsert/conflictos, RPC y trigger de transiciones, protección del snapshot, compresión/carga de evidencias y políticas Storage. El caché avanzó a `v31`.
 
+El ajuste operativo temporal activa `supervisor_direct`: el Supervisor SST puede autorizar directamente desde borrador mediante confirmación expresa. Se añadieron responsables, espacios de firma física, advertencias/recomendaciones centralizadas, bloqueo residual Grave en UI/SQL e indicadores operativos. `contractor_request` y sus campos permanecen reservados. El caché avanzó a `v32`.
+
 Pendientes: ejecutar dos veces el SQL, probar cuatro perfiles y transiciones, comprobar sincronización/evidencia en remoto, generar y persistir un PDF real, y aprobar los diez casos, móvil e impresión. No está listo para producción.
 
 No se realizó despliegue a Vercel ni se ejecutó SQL contra producción.
