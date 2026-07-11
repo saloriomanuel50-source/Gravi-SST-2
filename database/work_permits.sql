@@ -49,6 +49,33 @@ create or replace function public.touch_work_permit() returns trigger language p
 drop trigger if exists work_permits_touch on public.work_permits;
 create trigger work_permits_touch before update on public.work_permits for each row execute function public.touch_work_permit();
 
+create or replace function public.validate_work_permit_update() returns trigger language plpgsql security definer set search_path=public as $$
+declare required_permission text;
+begin
+  if old.authorized_snapshot is not null and new.authorized_snapshot is distinct from old.authorized_snapshot then
+    raise exception 'La instantánea autorizada es inalterable';
+  end if;
+  if new.status is distinct from old.status then
+    if not ((old.status='draft' and new.status='pending_review') or (old.status='rejected' and new.status='pending_review') or
+      (old.status='pending_review' and new.status in ('authorized','rejected')) or (old.status='authorized' and new.status='active') or
+      (old.status='active' and new.status in ('suspended','cancelled','expired','closed')) or (old.status='suspended' and new.status in ('active','cancelled'))) then
+      raise exception 'Transición de permiso inválida: % -> %',old.status,new.status;
+    end if;
+    required_permission := case
+      when new.status in ('pending_review','rejected') then 'permits.review'
+      when new.status in ('authorized','active') then 'permits.authorize'
+      when new.status='suspended' or (old.status='suspended' and new.status='active') then 'permits.suspend'
+      when new.status in ('cancelled','expired') then 'permits.cancel'
+      when new.status='closed' then 'permits.close' end;
+    if not public.has_work_permit_permission(required_permission) then raise exception 'Permiso insuficiente: %',required_permission; end if;
+  elsif not public.has_work_permit_permission('permits.edit') then
+    raise exception 'Permiso insuficiente: permits.edit';
+  end if;
+  return new;
+end $$;
+drop trigger if exists work_permits_validate_update on public.work_permits;
+create trigger work_permits_validate_update before update on public.work_permits for each row execute function public.validate_work_permit_update();
+
 alter table public.work_permits enable row level security;
 alter table public.work_permit_approvals enable row level security;
 alter table public.work_permit_evidence enable row level security;
@@ -69,7 +96,31 @@ create policy work_permits_select on public.work_permits for select using(public
 drop policy if exists work_permits_insert on public.work_permits;
 create policy work_permits_insert on public.work_permits for insert with check(public.has_work_permit_permission('permits.create') and created_by=auth.uid());
 drop policy if exists work_permits_update on public.work_permits;
-create policy work_permits_update on public.work_permits for update using(public.has_work_permit_permission('permits.edit') or public.has_work_permit_permission('permits.authorize')) with check(public.has_work_permit_permission('permits.edit') or public.has_work_permit_permission('permits.authorize'));
+create policy work_permits_update on public.work_permits for update using(
+  public.has_work_permit_permission('permits.edit') or public.has_work_permit_permission('permits.review') or
+  public.has_work_permit_permission('permits.authorize') or public.has_work_permit_permission('permits.suspend') or
+  public.has_work_permit_permission('permits.cancel') or public.has_work_permit_permission('permits.close')) with check(
+  public.has_work_permit_permission('permits.edit') or public.has_work_permit_permission('permits.review') or
+  public.has_work_permit_permission('permits.authorize') or public.has_work_permit_permission('permits.suspend') or
+  public.has_work_permit_permission('permits.cancel') or public.has_work_permit_permission('permits.close'));
+
+create or replace function public.transition_work_permit(p_permit_id uuid,p_to_status public.work_permit_status,p_observations text default '')
+returns public.work_permits language plpgsql security invoker set search_path=public as $$
+declare before_row public.work_permits; after_row public.work_permits;
+begin
+  select * into before_row from public.work_permits where id=p_permit_id for update;
+  if before_row.id is null then raise exception 'Permiso no encontrado'; end if;
+  update public.work_permits set status=p_to_status,
+    authorized_at=case when p_to_status='authorized' then now() else authorized_at end,
+    authorized_by=case when p_to_status='authorized' then auth.uid() else authorized_by end,
+    authorized_snapshot=case when p_to_status='authorized' and authorized_snapshot is null then to_jsonb(before_row)||jsonb_build_object('status','authorized','authorized_at',now(),'authorized_by',auth.uid()) else authorized_snapshot end
+  where id=p_permit_id returning * into after_row;
+  insert into public.work_permit_history(permit_id,event_type,from_status,to_status,details,user_id)
+  values(p_permit_id,'status_transition',before_row.status,p_to_status,jsonb_build_object('observations',coalesce(p_observations,'')),auth.uid());
+  return after_row;
+end $$;
+revoke all on function public.transition_work_permit(uuid,public.work_permit_status,text) from public;
+grant execute on function public.transition_work_permit(uuid,public.work_permit_status,text) to authenticated;
 
 do $$ declare t text; begin foreach t in array array['work_permit_approvals','work_permit_evidence','work_permit_history'] loop
   execute format('drop policy if exists %I on public.%I',t||'_select',t);
