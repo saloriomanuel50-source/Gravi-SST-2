@@ -6,9 +6,12 @@
   const authMessage = document.querySelector("#authMessage");
   const setPasswordForm = document.querySelector("#setPasswordForm");
   const setPasswordMessage = document.querySelector("#setPasswordMessage");
+  const invalidInvitationState = document.querySelector("#invalidInvitationState");
+  const invalidInvitationMessage = document.querySelector("#invalidInvitationMessage");
   const isSetPasswordRoute = location.pathname.replace(/\/$/, "") === "/set-password";
   let modulesLoaded = false;
   let mobileNavigationReady = false;
+  let passwordSubmissionActive = false;
 
   function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>'"]/g, character => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[character]));
@@ -109,24 +112,25 @@
   }
 
   function showAuthLoading() {
-    document.body.classList.remove("auth-login", "auth-locked", "app-loading", "set-password");
+    document.body.classList.remove("auth-login", "auth-locked", "app-loading", "set-password", "invalid-invitation");
     document.body.classList.add("auth-loading");
     authMessage.textContent = "";
     if (setPasswordMessage) setPasswordMessage.textContent = "";
   }
 
   function showAppLoading() {
-    document.body.classList.remove("auth-loading", "auth-login", "auth-locked", "set-password");
+    document.body.classList.remove("auth-loading", "auth-login", "auth-locked", "set-password", "invalid-invitation");
     document.body.classList.add("app-loading");
     authMessage.textContent = "";
     if (setPasswordMessage) setPasswordMessage.textContent = "";
   }
 
   function showLogin(message="") {
-    document.body.classList.remove("auth-loading", "app-loading", "set-password");
+    document.body.classList.remove("auth-loading", "app-loading", "set-password", "invalid-invitation");
     document.body.classList.add("auth-locked", "auth-login");
     loginForm.hidden = false;
     setPasswordForm.hidden = true;
+    invalidInvitationState.hidden = true;
     document.querySelector("#authTitle").textContent = "Bienvenido";
     document.querySelector(".auth-copy p").textContent = "Inicia sesi\u00f3n para continuar";
     authMessage.textContent = message;
@@ -134,15 +138,33 @@
   }
 
   function showSetPassword(message="") {
-    document.body.classList.remove("auth-loading", "app-loading", "auth-login");
+    document.body.classList.remove("auth-loading", "app-loading", "auth-login", "invalid-invitation");
     document.body.classList.add("auth-locked", "set-password");
     loginForm.hidden = true;
     setPasswordForm.hidden = false;
+    invalidInvitationState.hidden = true;
     document.querySelector("#authTitle").textContent = "Crear contrase\u00f1a";
-    document.querySelector(".auth-copy p").textContent = "Define tu acceso para entrar a GRAVI SST v2.";
+    document.querySelector(".auth-copy p").textContent = "Establece una contrase\u00f1a para activar tu acceso a GRAVI SST.";
     setPasswordMessage.textContent = message;
     setPasswordForm.elements.password.focus();
   }
+
+  function showInvalidInvitation(message="") {
+    document.body.classList.remove("auth-loading", "app-loading", "auth-login", "set-password");
+    document.body.classList.add("auth-locked", "invalid-invitation");
+    loginForm.hidden = true;
+    setPasswordForm.hidden = true;
+    invalidInvitationState.hidden = false;
+    Array.from(setPasswordForm.elements).forEach(control => control.disabled = true);
+    document.querySelector("#authTitle").textContent = "Invitaci\u00f3n no disponible";
+    document.querySelector(".auth-copy p").textContent = "No es posible activar el acceso con este enlace.";
+    invalidInvitationMessage.textContent = message || "El enlace de invitaci\u00f3n es inv\u00e1lido o ha expirado. Solicita una nueva invitaci\u00f3n al administrador.";
+  }
+
+  document.querySelector("#backToLoginButton").addEventListener("click", async () => {
+    await window.GraviSupabase.logout();
+    location.replace("/");
+  });
 
   loginForm.addEventListener("submit", async event => {
     event.preventDefault();
@@ -165,6 +187,7 @@
 
   setPasswordForm.addEventListener("submit", async event => {
     event.preventDefault();
+    if (passwordSubmissionActive) return;
     const button = setPasswordForm.querySelector("button[type=submit]");
     const fields = new FormData(setPasswordForm);
     const password = String(fields.get("password") || "");
@@ -180,16 +203,24 @@
     }
     button.disabled = true;
     button.textContent = "Guardando...";
+    passwordSubmissionActive = true;
+    let passwordUpdated = false;
     try {
       await window.GraviSupabase.updatePassword(password);
+      passwordUpdated = true;
+      window.GraviSupabase.clearPasswordSetupPending();
+      window.GraviSupabase.clearAuthRedirectUrl("/set-password");
       setPasswordForm.reset();
       setPasswordMessage.textContent = "Contrase\u00f1a creada correctamente. Entrando a GRAVI SST...";
+      await window.GraviSupabase.loadCurrentProfileAndData();
       window.GraviSupabase.clearAuthRedirectUrl("/");
       showAppLoading();
       await enterApplication();
     } catch (error) {
-      setPasswordMessage.textContent = error.message || "No fue posible guardar la contrase\u00f1a. Solicita una nueva invitaci\u00f3n.";
+      if (passwordUpdated) showInvalidInvitation("La contrase\u00f1a fue creada, pero no fue posible cargar tu perfil GRAVI. Contacta al administrador.");
+      else setPasswordMessage.textContent = error.message || "No fue posible guardar la contrase\u00f1a. Solicita una nueva invitaci\u00f3n.";
     } finally {
+      passwordSubmissionActive = false;
       button.disabled = false;
       button.textContent = "Guardar contrase\u00f1a";
     }
@@ -405,14 +436,21 @@
 
   try {
     showAuthLoading();
-    if (isSetPasswordRoute || window.GraviSupabase.hasAuthRedirect()) {
+    if (window.GraviSupabase.hasAuthRedirect()) {
       try {
         await window.GraviSupabase.processAuthRedirect();
-        window.GraviSupabase.clearAuthRedirectUrl("/set-password");
         showSetPassword();
       } catch (error) {
         console.error("No fue posible procesar la invitacion.", error);
-        showSetPassword(error.message || "El enlace de invitaci\u00f3n no es v\u00e1lido o ya expir\u00f3.");
+        showInvalidInvitation();
+      }
+    } else if (isSetPasswordRoute) {
+      try {
+        await window.GraviSupabase.resumePasswordSetup();
+        showSetPassword();
+      } catch (error) {
+        console.error("No fue posible reanudar la invitacion.", error);
+        showInvalidInvitation();
       }
     } else {
       const state = await window.GraviSupabase.bootstrap();

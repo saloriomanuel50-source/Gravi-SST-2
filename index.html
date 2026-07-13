@@ -12,7 +12,7 @@
   <meta name="format-detection" content="telephone=no">
   <meta name="description" content="Sistema GRAVI de seguridad, salud, inspecciones y cumplimiento para obra.">
   <title>GRAVI SST</title>
-  <script>window.GRAVI_BUILD_VERSION = "2026-07-13-print-v34";</script>
+  <script>window.GRAVI_BUILD_VERSION = "2026-07-13-auth-v35";</script>
   <link rel="manifest" href="./manifest.json?v=2026-07-10-daily-sync">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/pwa-icon-192.png">
   <link rel="apple-touch-icon" href="./assets/pwa-icon-192.png">
@@ -24,7 +24,7 @@
   <link rel="stylesheet" href="./src/styles/phase3.css?v=1">
   <link rel="stylesheet" href="./src/styles/phase4.css?v=1">
   <link rel="stylesheet" href="./src/styles/phase5.css?v=1">
-  <link rel="stylesheet" href="./src/styles/phase5-2.css?v=17">
+  <link rel="stylesheet" href="./src/styles/phase5-2.css?v=18">
   <link rel="stylesheet" href="./src/styles/work-permits.css?v=1">
   <link rel="stylesheet" href="./src/styles/signatures.css?v=1">
   <link rel="stylesheet" href="./src/styles/print-documents.css?v=34" media="print">
@@ -70,6 +70,10 @@
           <p class="auth-message" id="setPasswordMessage" role="alert"></p>
           <button class="primary" type="submit">Guardar contrase&ntilde;a</button>
         </form>
+        <div id="invalidInvitationState" class="auth-form invalid-invitation-state" hidden role="alert">
+          <p id="invalidInvitationMessage">El enlace de invitaci&oacute;n es inv&aacute;lido o ha expirado. Solicita una nueva invitaci&oacute;n al administrador.</p>
+          <button class="secondary" id="backToLoginButton" type="button">Volver al inicio de sesi&oacute;n</button>
+        </div>
       </div>
     </div>
   </section>
@@ -455,10 +459,10 @@
       <div id="userAdminList" class="user-admin-list"></div>
     </section>
   </div>
-  <script src="./src/supabase.js?v=2026-07-09-mobile-ux"></script>
+  <script src="./src/supabase.js?v=2026-07-13-auth-v35"></script>
   <script src="./src/repositories.js?v=2026-07-07-hotfix-charset"></script>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="./src/bootstrap.js?v=2026-07-13-print-v34"></script>
+  <script src="./src/bootstrap.js?v=2026-07-13-auth-v35"></script>
   <!-- M&oacute;dulo de Formatos Din&aacute;micos -->
   <script src="./src/dynamic-formats.js?v=2026-07-07-hotfix-charset"></script>
   <script src="./src/dynamic-formats-controller.js?v=2026-07-07-hotfix-charset"></script>

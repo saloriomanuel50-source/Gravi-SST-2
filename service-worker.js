@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_NAME = "gravi-sst-v2-shell-v34";
+const CACHE_NAME = "gravi-sst-v2-shell-v35";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -13,14 +13,14 @@ const APP_SHELL = [
   "./src/styles/phase3.css?v=1",
   "./src/styles/phase4.css?v=1",
   "./src/styles/phase5.css?v=1",
-  "./src/styles/phase5-2.css?v=17",
+  "./src/styles/phase5-2.css?v=18",
   "./src/styles/work-permits.css?v=1",
   "./src/styles/signatures.css?v=1",
   "./src/styles/print-documents.css?v=34",
   "./src/app.js?v=2026-07-07-hotfix-charset",
-  "./src/supabase.js?v=2026-07-09-mobile-ux",
+  "./src/supabase.js?v=2026-07-13-auth-v35",
   "./src/repositories.js?v=2026-07-07-hotfix-charset",
-  "./src/bootstrap.js?v=2026-07-13-print-v34",
+  "./src/bootstrap.js?v=2026-07-13-auth-v35",
   "./src/print/print-manager.js?v=34",
   "./src/corporate-documents.js?v=34",
   "./src/extensions.js?v=2026-07-07-hotfix-charset",

@@ -84,7 +84,7 @@ const expectedIndexReferences = [
   "./src/styles/phase3.css?v=1",
   "./src/styles/phase4.css?v=1",
   "./src/styles/phase5.css?v=1",
-  "./src/styles/phase5-2.css?v=17",
+  "./src/styles/phase5-2.css?v=18",
   "./src/styles/print-documents.css?v=34",
   "./src/supabase.js",
   "./src/bootstrap.js",
@@ -101,9 +101,22 @@ for (const reference of ["./src/print/print-manager.js?v=34", "./src/app.js", ".
 }
 
 const serviceWorker = read("service-worker.js");
-for (const reference of ["./src/app.js", "./src/supabase.js", "./src/bootstrap.js?v=2026-07-13-print-v34", "./src/print/print-manager.js?v=34", "./src/system.js?v=2026-07-13-print-v34", "./src/styles/print-documents.css?v=34", "./src/styles/phase5-2.css?v=17", "./assets/gravi-sst-logo-dark.png", "./assets/gravi-sst-login-panel.png", "./assets/gravi-sst-splash.png", "./assets/pwa-icon-192.png"]) {
+for (const reference of ["./src/app.js", "./src/supabase.js?v=2026-07-13-auth-v35", "./src/bootstrap.js?v=2026-07-13-auth-v35", "./src/print/print-manager.js?v=34", "./src/system.js?v=2026-07-13-print-v34", "./src/styles/print-documents.css?v=34", "./src/styles/phase5-2.css?v=18", "./assets/gravi-sst-logo-dark.png", "./assets/gravi-sst-login-panel.png", "./assets/gravi-sst-splash.png", "./assets/pwa-icon-192.png"]) {
   if (!serviceWorker.includes(reference)) fail(`service-worker.js no precachea ${reference}`);
 }
+
+const authStyles = read("src/styles/phase5-2.css");
+for (const rule of [".auth-screen [hidden]", "body.auth-login #setPasswordForm", "body.set-password #loginForm"]) {
+  if (!authStyles.includes(rule)) fail(`phase5-2.css no contiene la regla definitiva ${rule}`);
+}
+
+const inviteApi = read("api/invite-user.js");
+if (!inviteApi.includes("profileResponse.ok")) fail("api/invite-user.js no valida profileResponse.ok");
+
+for (const reference of ["window.GRAVI_BUILD_VERSION = \"2026-07-13-auth-v35\"", "./src/styles/phase5-2.css?v=18", "./src/bootstrap.js?v=2026-07-13-auth-v35", "./src/supabase.js?v=2026-07-13-auth-v35"]) {
+  if (!index.includes(reference)) fail(`index.html no usa la version coordinada ${reference}`);
+}
+if (!serviceWorker.includes('const CACHE_NAME = "gravi-sst-v2-shell-v35"')) fail("service-worker.js no usa cache v35");
 
 const dailyReportsSql = read("database/daily_reports_v2.sql");
 for (const reference of ["public.registro_diario", "unique index if not exists registro_diario_work_date_shift_uidx", "automatic_snapshot", "close_due_daily_reports", "work_user_assignments"]) {

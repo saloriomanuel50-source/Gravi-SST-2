@@ -5,6 +5,8 @@
   const RECORDS_CACHE_KEY = "gvc-extintores-records-v1";
   const PENDING_KEY = "gvc-supabase-pending-v1";
   const SESSION_KEY = "gvc-supabase-session-v1";
+  const PASSWORD_SETUP_PENDING_KEY = "gravi-password-setup-pending-v1";
+  const PASSWORD_SETUP_TTL_MS = 20 * 60 * 1000;
   const DYNAMIC_FORMATS_CACHE_KEY = "gvc-dynamic-formats-v1";
   const DYNAMIC_FORMATS_PENDING_KEY = "gvc-dynamic-formats-pending-v1";
   const DAILY_REPORTS_CACHE_KEY = "gvc-daily-log-v1";
@@ -225,16 +227,34 @@
     return Boolean(params.get("access_token") || params.get("refresh_token") || params.get("type") === "invite");
   }
 
+  function clearPasswordSetupPending() {
+    localStorage.removeItem(PASSWORD_SETUP_PENDING_KEY);
+  }
+
+  function createPasswordSetupPending(userId) {
+    if (!userId) throw new Error("La invitación no identificó al usuario.");
+    const createdAt = Date.now();
+    writeJson(PASSWORD_SETUP_PENDING_KEY, {userId,createdAt,expiresAt:createdAt + PASSWORD_SETUP_TTL_MS});
+  }
+
+  function validPasswordSetupPending(userId) {
+    const pending = readJson(PASSWORD_SETUP_PENDING_KEY, null);
+    if (!pending?.userId || !pending.expiresAt || Number(pending.expiresAt) <= Date.now() || pending.userId !== userId) {
+      clearPasswordSetupPending();
+      return false;
+    }
+    return true;
+  }
+
   async function processAuthRedirect() {
     if (!await ensureConfigured()) throw new Error("Supabase no est\u00e1 configurado en este despliegue.");
     const params = authRedirectParams();
     const accessToken = params.get("access_token");
     const refreshToken = params.get("refresh_token");
     if (params.get("error_description")) throw new Error(params.get("error_description"));
-    if (!accessToken || !refreshToken) {
-      if (currentSession?.access_token || await restoreSession()) return {session:currentSession,user:currentSession?.user || null,type:params.get("type") || ""};
-      throw new Error("El enlace de invitaci\u00f3n no contiene una sesi\u00f3n v\u00e1lida. Solicita una nueva invitaci\u00f3n.");
-    }
+    if (!accessToken || !refreshToken) throw new Error("El enlace de invitaci\u00f3n no contiene una sesi\u00f3n v\u00e1lida. Solicita una nueva invitaci\u00f3n.");
+    const redirectType = params.get("type") || "";
+    if (redirectType !== "invite") throw new Error("El enlace no corresponde a una invitaci\u00f3n de usuario.");
     const session = {
       access_token:accessToken,
       refresh_token:refreshToken,
@@ -245,7 +265,23 @@
     const user = await authRequest("user", {token:accessToken});
     currentSession.user = user;
     saveSession(currentSession);
-    return {session:currentSession,user,type:params.get("type") || ""};
+    createPasswordSetupPending(user.id);
+    return {session:currentSession,user,type:redirectType};
+  }
+
+  async function resumePasswordSetup() {
+    if (!await ensureConfigured()) throw new Error("Supabase no est\u00e1 configurado en este despliegue.");
+    currentSession = readJson(SESSION_KEY, null);
+    if (!currentSession) {
+      clearPasswordSetupPending();
+      throw new Error("No existe una invitaci\u00f3n pendiente.");
+    }
+    await ensureFreshSession();
+    const user = await authRequest("user", {token:currentSession.access_token});
+    currentSession.user = user;
+    saveSession(currentSession);
+    if (!validPasswordSetupPending(user.id)) throw new Error("La invitaci\u00f3n pendiente no corresponde a esta sesi\u00f3n o ya expir\u00f3.");
+    return {session:currentSession,user};
   }
 
   function clearAuthRedirectUrl(path="/set-password") {
@@ -704,6 +740,7 @@
     currentSession = null;
     currentProfile = null;
     localStorage.removeItem(SESSION_KEY);
+    clearPasswordSetupPending();
     clearSensitiveCache();
   }
 
@@ -713,6 +750,10 @@
     const user = await authRequest("user", {method:"PUT",token:currentSession.access_token,body:{password}});
     currentSession.user = user;
     saveSession(currentSession);
+    return {user:currentSession.user};
+  }
+
+  async function loadCurrentProfileAndData() {
     await loadProfile();
     await loadAuthenticatedData();
     await prepareDailyReports();
@@ -1163,7 +1204,7 @@
 
   global.GraviSupabase = {
     bootstrap, login, logout, scheduleSystemSync, syncSystemData, upsertRecord, syncRecords,
-    listProfiles, updateProfile, inviteUser, updatePassword, processAuthRedirect, clearAuthRedirectUrl, hasAuthRedirect, can, canPermission, dynamicFormats, dailyReports, workPermits, signatures,
+    listProfiles, updateProfile, inviteUser, updatePassword, loadCurrentProfileAndData, processAuthRedirect, resumePasswordSetup, clearPasswordSetupPending, clearAuthRedirectUrl, hasAuthRedirect, can, canPermission, dynamicFormats, dailyReports, workPermits, signatures,
     permissionGroups:() => clone(PERMISSION_GROUPS),
     roleDefaultPermissions:role => permissionDefaults(role),
     getProfilePermissions:profile => ({settings:permissionSettingsFor(profile || currentProfile || {}), effective:effectivePermissions(profile || currentProfile || {})}),
