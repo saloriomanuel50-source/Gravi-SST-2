@@ -28,27 +28,27 @@ create trigger document_signatures_touch before update on public.document_signat
 
 alter table public.document_signatures enable row level security;alter table public.document_signature_events enable row level security;
 drop policy if exists document_signatures_select on public.document_signatures;
-create policy document_signatures_select on public.document_signatures for select to authenticated using(public.has_work_permit_permission('signatures.view'));
+create policy document_signatures_select on public.document_signatures for select to authenticated using(public.has_gravi_permission('signatures.view'));
 drop policy if exists document_signatures_insert on public.document_signatures;
-create policy document_signatures_insert on public.document_signatures for insert to authenticated with check(captured_by_user_id=auth.uid() and public.has_work_permit_permission('signatures.capture'));
+create policy document_signatures_insert on public.document_signatures for insert to authenticated with check(captured_by_user_id=auth.uid() and public.has_gravi_permission('signatures.capture'));
 drop policy if exists document_signatures_update on public.document_signatures;
-create policy document_signatures_update on public.document_signatures for update to authenticated using(public.has_work_permit_permission('signatures.invalidate')) with check(public.has_work_permit_permission('signatures.invalidate'));
+create policy document_signatures_update on public.document_signatures for update to authenticated using(public.has_gravi_permission('signatures.invalidate')) with check(public.has_gravi_permission('signatures.invalidate'));
 drop policy if exists document_signature_events_select on public.document_signature_events;
-create policy document_signature_events_select on public.document_signature_events for select to authenticated using(public.has_work_permit_permission('signatures.view'));
+create policy document_signature_events_select on public.document_signature_events for select to authenticated using(public.has_gravi_permission('signatures.view'));
 drop policy if exists document_signature_events_insert on public.document_signature_events;
 create policy document_signature_events_insert on public.document_signature_events for insert to authenticated with check(actor_user_id=auth.uid());
 
 insert into storage.buckets(id,name,public) values('document-signatures','document-signatures',false) on conflict(id) do update set public=false;
 drop policy if exists document_signatures_storage_select on storage.objects;
-create policy document_signatures_storage_select on storage.objects for select to authenticated using(bucket_id='document-signatures' and public.has_work_permit_permission('signatures.view'));
+create policy document_signatures_storage_select on storage.objects for select to authenticated using(bucket_id='document-signatures' and public.has_gravi_permission('signatures.view'));
 drop policy if exists document_signatures_storage_insert on storage.objects;
-create policy document_signatures_storage_insert on storage.objects for insert to authenticated with check(bucket_id='document-signatures' and public.has_work_permit_permission('signatures.capture'));
+create policy document_signatures_storage_insert on storage.objects for insert to authenticated with check(bucket_id='document-signatures' and public.has_gravi_permission('signatures.capture'));
 drop policy if exists document_signatures_storage_delete on storage.objects;
-create policy document_signatures_storage_delete on storage.objects for delete to authenticated using(bucket_id='document-signatures' and public.has_work_permit_permission('signatures.invalidate'));
+create policy document_signatures_storage_delete on storage.objects for delete to authenticated using(bucket_id='document-signatures' and public.has_gravi_permission('signatures.invalidate'));
 
 create or replace function public.invalidate_document_signatures(p_document_type text,p_document_id uuid,p_document_version text,p_reason text)
 returns integer language plpgsql security invoker set search_path=public as $$ declare affected integer;begin
- if not public.has_work_permit_permission('signatures.invalidate') then raise exception 'Permiso insuficiente: signatures.invalidate';end if;
+ if not public.has_gravi_permission('signatures.invalidate') then raise exception 'Permiso insuficiente: signatures.invalidate';end if;
  update public.document_signatures set signature_status='invalidated',invalidated_at=now(),invalidated_by=auth.uid(),invalidation_reason=p_reason
  where document_type=p_document_type and document_id=p_document_id and document_version=p_document_version and signature_status='valid';get diagnostics affected=row_count;
  insert into public.document_signature_events(signature_id,event_type,details,actor_user_id) select id,'signature_invalidated',jsonb_build_object('reason',p_reason),auth.uid() from public.document_signatures where document_type=p_document_type and document_id=p_document_id and document_version=p_document_version and invalidated_at>=statement_timestamp();return affected;end $$;

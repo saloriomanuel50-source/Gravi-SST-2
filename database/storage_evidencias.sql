@@ -24,22 +24,22 @@ drop policy if exists evidencias_delete_admin on storage.objects;
 create policy evidencias_select_authenticated
 on storage.objects for select
 to authenticated
-using (bucket_id = 'evidencias' and public.is_active_user());
+using (bucket_id = 'evidencias' and name not like 'work-permits/%' and public.has_gravi_permission('evidence.view'));
 
 create policy evidencias_insert_operational
 on storage.objects for insert
 to authenticated
-with check (bucket_id = 'evidencias' and public.can_gravi_operate());
+with check (bucket_id = 'evidencias' and name not like 'work-permits/%' and public.has_gravi_permission('evidence.upload'));
 
 create policy evidencias_update_operational
 on storage.objects for update
 to authenticated
-using (bucket_id = 'evidencias' and public.can_gravi_operate())
-with check (bucket_id = 'evidencias' and public.can_gravi_operate());
+using (bucket_id = 'evidencias' and name not like 'work-permits/%' and public.has_gravi_permission('evidence.upload'))
+with check (bucket_id = 'evidencias' and name not like 'work-permits/%' and public.has_gravi_permission('evidence.upload'));
 
 create policy evidencias_delete_admin
 on storage.objects for delete
 to authenticated
-using (bucket_id = 'evidencias' and public.is_gravi_admin());
+using (bucket_id = 'evidencias' and name not like 'work-permits/%' and (public.has_gravi_permission('evidence.delete') or public.is_gravi_admin()));
 
 commit;

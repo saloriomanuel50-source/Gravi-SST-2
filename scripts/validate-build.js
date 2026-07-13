@@ -18,6 +18,11 @@ const requiredFiles = [
   "src/supabase.js",
   "src/system.js",
   "src/signatures.js",
+  "api/manage-users.js",
+  "api/permissions-contract.js",
+  "database/permissions_full_v3.sql",
+  "tests/permission-contract.test.js",
+  "tests/permission-security.test.js",
   "src/print/print-manager.js",
   "src/styles/styles.css",
   "src/styles/fixes.css",
@@ -42,6 +47,8 @@ const requiredFiles = [
   "database/daily_reports_v2.sql",
   "database/storage_evidencias.sql"
   ,"database/document_signatures.sql"
+  ,"database/core_permissions_v2.sql"
+  ,"tests/permissions.test.js"
 ];
 
 function fail(message) {
@@ -96,12 +103,12 @@ for (const reference of expectedIndexReferences) {
 }
 
 const bootstrap = read("src/bootstrap.js");
-for (const reference of ["./src/print/print-manager.js?v=34", "./src/app.js", "./src/corporate-documents.js", "./src/extensions.js?v=2", "./src/system.js?v=2026-07-13-print-v34", "./src/pwa.js"]) {
+for (const reference of ["./src/print/print-manager.js?v=34", "./src/app.js?v=2026-07-13-permissions-v38", "./src/corporate-documents.js", "./src/extensions.js?v=2", "./src/system.js?v=2026-07-13-permissions-v38", "./src/pwa.js"]) {
   if (!bootstrap.includes(reference)) fail(`bootstrap.js no carga ${reference}`);
 }
 
 const serviceWorker = read("service-worker.js");
-for (const reference of ["./src/app.js", "./src/supabase.js?v=2026-07-13-auth-v35", "./src/bootstrap.js?v=2026-07-13-auth-v35", "./src/print/print-manager.js?v=34", "./src/system.js?v=2026-07-13-print-v34", "./src/styles/print-documents.css?v=34", "./src/styles/phase5-2.css?v=18", "./assets/gravi-sst-logo-dark.png", "./assets/gravi-sst-login-panel.png", "./assets/gravi-sst-splash.png", "./assets/pwa-icon-192.png"]) {
+for (const reference of ["./src/app.js?v=2026-07-13-permissions-v38", "./src/supabase.js?v=2026-07-13-permissions-v38", "./src/bootstrap.js?v=2026-07-13-permissions-v38", "./src/print/print-manager.js?v=34", "./src/system.js?v=2026-07-13-permissions-v38", "./src/styles/print-documents.css?v=34", "./src/styles/phase5-2.css?v=18", "./assets/gravi-sst-logo-dark.png", "./assets/gravi-sst-login-panel.png", "./assets/gravi-sst-splash.png", "./assets/pwa-icon-192.png"]) {
   if (!serviceWorker.includes(reference)) fail(`service-worker.js no precachea ${reference}`);
 }
 
@@ -113,10 +120,15 @@ for (const rule of [".auth-screen [hidden]", "body.auth-login #setPasswordForm",
 const inviteApi = read("api/invite-user.js");
 if (!inviteApi.includes("profileResponse.ok")) fail("api/invite-user.js no valida profileResponse.ok");
 
-for (const reference of ["window.GRAVI_BUILD_VERSION = \"2026-07-13-auth-v35\"", "./src/styles/phase5-2.css?v=18", "./src/bootstrap.js?v=2026-07-13-auth-v35", "./src/supabase.js?v=2026-07-13-auth-v35"]) {
+for (const reference of ["window.GRAVI_BUILD_VERSION = \"2026-07-13-permissions-v38\"", "./src/styles/phase5-2.css?v=18", "./src/bootstrap.js?v=2026-07-13-permissions-v38", "./src/supabase.js?v=2026-07-13-permissions-v38"]) {
   if (!index.includes(reference)) fail(`index.html no usa la version coordinada ${reference}`);
 }
-if (!serviceWorker.includes('const CACHE_NAME = "gravi-sst-v2-shell-v35"')) fail("service-worker.js no usa cache v35");
+if (!serviceWorker.includes('const CACHE_NAME = "gravi-sst-v2-shell-v38"')) fail("service-worker.js no usa cache v38");
+
+const releaseV38 = read("database/permissions_release_v38.sql");
+const verifyV38 = read("database/verify_permissions_v38.sql");
+for (const fragment of ["begin;","pg_catalog.pg_policies","revoke insert,update,delete on table public.perfiles_usuario from authenticated","set search_path=pg_catalog,public"]) if (!releaseV38.toLowerCase().includes(fragment)) fail(`permissions_release_v38.sql no contiene ${fragment}`);
+if (!verifyV38.includes("PASS") || !verifyV38.includes("FAIL")) fail("verify_permissions_v38.sql no reporta PASS/FAIL");
 
 const dailyReportsSql = read("database/daily_reports_v2.sql");
 for (const reference of ["public.registro_diario", "unique index if not exists registro_diario_work_date_shift_uidx", "automatic_snapshot", "close_due_daily_reports", "work_user_assignments"]) {

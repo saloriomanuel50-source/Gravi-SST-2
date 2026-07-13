@@ -432,9 +432,12 @@ function allRecords() { try { return JSON.parse(localStorage.getItem(STORAGE_REC
 function records() { const all=allRecords(),workId=localStorage.getItem("gvc-active-work-id");return workId?all.filter(item=>(item.workId||"legacy")===workId):all; }
 function repositoryRecords() { const all=window.GraviRepositories?.records?.list?.() || allRecords(),workId=localStorage.getItem("gvc-active-work-id");return workId?all.filter(item=>(item.workId||"legacy")===workId):all; }
 function finish(data) {
+  const existedRemotely=allRecords().some(item=>item.id===data.id);
   data.workId = localStorage.getItem("gvc-active-work-id") || data.workId || "legacy";
   const all = allRecords().filter(x => x.id !== data.id); all.unshift(data); localStorage.setItem(STORAGE_RECORDS, JSON.stringify(all));
-  window.GraviSupabase?.upsertRecord(data);
+  const mutations=window.GraviSupabase?.entityMutations;
+  if(data.type==="incident")(existedRemotely?mutations?.updateIncident:mutations?.createIncident)?.(data);
+  else (existedRemotely?mutations?.updateInspection:mutations?.createInspection)?.(data);
   if (data.type === "firstAid") localStorage.removeItem(STORAGE_FIRST_AID_DRAFT);
   else if (data.type === "incident") localStorage.removeItem(STORAGE_INCIDENT_DRAFT);
   else if (equipmentConfigs[data.type]) localStorage.removeItem(`gvc-${data.type}-draft-v1-${WORK_SCOPE}`);

@@ -120,6 +120,8 @@ create table if not exists public.perfiles_usuario (
   full_name text not null default '',
   role text not null default 'Consulta' check (role in ('Administrador','Supervisor SST','Consulta')),
   active boolean not null default true,
+  permissions_mode text not null default 'role-default',
+  custom_permissions jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -167,10 +169,20 @@ create or replace function public.can_gravi_operate()
 returns boolean language sql stable security definer set search_path=public
 as $$ select coalesce(public.current_user_role() in ('Administrador','Supervisor SST'),false) $$;
 
+create or replace function public.role_has_default_permission(p_role text, p_key text)
+returns boolean language sql immutable
+as $$ select case when p_role='Administrador' then true when p_role='Supervisor SST' then p_key=any(array['works.view','contractors.view','contractors.create','contractors.edit','workers.view','workers.create','workers.edit','visitors.view','visitors.register','attendance.view','attendance.register','attendance.edit','operations.view','inspections.create','inspections.edit','incidents.view','incidents.create','incidents.edit','permits.view','permits.create','permits.edit','permits.review','permits.authorize','permits.suspend','permits.cancel','permits.close','permits.export','signatures.view','signatures.capture','signatures.invalidate','signatures.export','compliance.view','compliance.edit','compliance.monthly_report','documents.view','documents.generate','reports.view','reports.generate','histories.work','audit.view']) when p_role='Consulta' then p_key like '%.view' or p_key like 'histories.%' or p_key='audit.view' or p_key='works.view' else false end $$;
+
+create or replace function public.has_gravi_permission(p_key text)
+returns boolean language sql stable security definer set search_path=public
+as $$ select coalesce((select case when role='Administrador' then true when permissions_mode='custom' and custom_permissions ? p_key then coalesce((custom_permissions->>p_key)::boolean,false) else public.role_has_default_permission(role,p_key) end from public.perfiles_usuario where user_id=auth.uid() and active=true limit 1),false) $$;
+
 grant execute on function public.current_user_role() to authenticated;
 grant execute on function public.is_active_user() to authenticated;
 grant execute on function public.is_gravi_admin() to authenticated;
 grant execute on function public.can_gravi_operate() to authenticated;
+grant execute on function public.role_has_default_permission(text,text) to authenticated;
+grant execute on function public.has_gravi_permission(text) to authenticated;
 
 create or replace function public.handle_new_gravi_user()
 returns trigger language plpgsql security definer set search_path=public
@@ -190,7 +202,7 @@ do $$
 declare table_name text;
 begin
   foreach table_name in array array[
-    'desarrollos','obras','contratistas','trabajadores','visitantes','asistencia',
+    'desarrollos','obras','visitantes','asistencia',
     'investigaciones','historial','registros','estado_aplicacion','cumplimiento_estado'
   ] loop
     execute format('drop policy if exists gravi_anon_access on public.%I', table_name);
@@ -206,15 +218,33 @@ end $$;
 do $$
 declare table_name text;
 begin
-  foreach table_name in array array['desarrollos','obras','contratistas','cumplimiento_estado'] loop
+  foreach table_name in array array['desarrollos','obras','cumplimiento_estado'] loop
     execute format('create policy gravi_insert on public.%I for insert to authenticated with check (public.is_gravi_admin())', table_name);
     execute format('create policy gravi_update on public.%I for update to authenticated using (public.is_gravi_admin()) with check (public.is_gravi_admin())', table_name);
   end loop;
-  foreach table_name in array array['trabajadores','visitantes','asistencia','investigaciones','historial','registros','estado_aplicacion'] loop
+  foreach table_name in array array['visitantes','asistencia','investigaciones','historial','registros','estado_aplicacion'] loop
     execute format('create policy gravi_insert on public.%I for insert to authenticated with check (public.can_gravi_operate())', table_name);
     execute format('create policy gravi_update on public.%I for update to authenticated using (public.can_gravi_operate()) with check (public.can_gravi_operate())', table_name);
   end loop;
 end $$;
+
+drop policy if exists gravi_read on public.contratistas;
+drop policy if exists gravi_insert on public.contratistas;
+drop policy if exists gravi_update on public.contratistas;
+drop policy if exists gravi_delete on public.contratistas;
+create policy gravi_read on public.contratistas for select to authenticated using (public.has_gravi_permission('contractors.view'));
+create policy gravi_insert on public.contratistas for insert to authenticated with check (public.has_gravi_permission('contractors.create'));
+create policy gravi_update on public.contratistas for update to authenticated using (public.has_gravi_permission('contractors.edit')) with check (public.has_gravi_permission('contractors.edit'));
+create policy gravi_delete on public.contratistas for delete to authenticated using (public.is_gravi_admin());
+
+drop policy if exists gravi_read on public.trabajadores;
+drop policy if exists gravi_insert on public.trabajadores;
+drop policy if exists gravi_update on public.trabajadores;
+drop policy if exists gravi_delete on public.trabajadores;
+create policy gravi_read on public.trabajadores for select to authenticated using (public.has_gravi_permission('workers.view'));
+create policy gravi_insert on public.trabajadores for insert to authenticated with check (public.has_gravi_permission('workers.create'));
+create policy gravi_update on public.trabajadores for update to authenticated using (public.has_gravi_permission('workers.edit')) with check (public.has_gravi_permission('workers.edit'));
+create policy gravi_delete on public.trabajadores for delete to authenticated using (public.is_gravi_admin());
 
 drop policy if exists profiles_select on public.perfiles_usuario;
 drop policy if exists profiles_update on public.perfiles_usuario;

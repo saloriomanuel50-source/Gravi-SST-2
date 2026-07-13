@@ -12,7 +12,11 @@
     "build": "node scripts/validate-build.js",
     "validate": "node scripts/validate-build.js",
     "test:permits": "node tests/work-permits.test.js"
-    ,"test:signatures": "node tests/signatures.test.js"
+    ,"test:signatures": "node tests/signatures.test.js",
+    "test:permissions": "node tests/permissions.test.js",
+    "test:permission-contract": "node tests/permission-contract.test.js",
+    "test:permission-security": "node tests/permission-security.test.js",
+    "test:permission-routes": "node tests/permission-routes.test.js"
   },
   "dependencies": {},
   "devDependencies": {}

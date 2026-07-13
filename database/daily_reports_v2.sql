@@ -240,9 +240,9 @@ create or replace function public.can_access_daily_report(
 ) returns boolean
 language sql stable security definer set search_path = ''
 as $$
-  select coalesce(
-    public.is_gravi_admin()
-    or exists (
+  select coalesce(public.is_gravi_admin() or (
+    public.has_gravi_permission(case p_action when 'read' then 'daily_reports.view' when 'edit' then 'daily_reports.edit' when 'close' then 'daily_reports.close' when 'validate' then 'daily_reports.validate' when 'reopen' then 'daily_reports.reopen' else '' end)
+    and exists (
       select 1
       from public.work_user_assignments a
       where a.work_id = p_work_id
@@ -256,7 +256,7 @@ as $$
           when 'reopen' then a.can_reopen
           else false
         end
-    ), false
+    )), false
   )
 $$;
 

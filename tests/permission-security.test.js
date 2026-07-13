@@ -1,0 +1,13 @@
+"use strict";
+const assert=require("assert"),fs=require("fs"),path=require("path"),root=path.resolve(__dirname,".."),read=file=>fs.readFileSync(path.join(root,file),"utf8");
+const {hasPermission,validateCustomPermissions}=require("../api/permissions-contract");
+const manage=read("api/manage-users.js"),invite=read("api/invite-user.js"),client=read("src/supabase.js");
+assert(!hasPermission({role:"Supervisor SST",active:false},"workers.create"));
+assert(!hasPermission({role:"Supervisor SST",active:true,permissions_mode:"custom",custom_permissions:{"workers.create":false}},"workers.create"));
+assert(hasPermission({role:"Consulta",active:true,permissions_mode:"custom",custom_permissions:{"workers.create":true}},"workers.create"));
+assert.throws(()=>validateCustomPermissions({"unknown.permission":true}),/Permiso inválido/);assert.throws(()=>validateCustomPermissions({"workers.create":"true"}),/Permiso inválido/);
+for(const fragment of ["users.view","users.edit","users.change_roles","users.manage_permissions","users.deactivate","\\u00faltimo Administrador activo","No puedes conceder","S\\u00f3lo un Administrador puede asignar"] )assert(manage.includes(fragment),`Endpoint seguro falta ${fragment}`);
+for(const fragment of ["hasPermission(callerProfile,\"users.invite\")","canChangeRoles","canManagePermissions","S\\u00f3lo un Administrador puede invitar otro Administrador","validateCustomPermissions"])assert(invite.includes(fragment),`Invitación segura falta ${fragment}`);
+assert(client.includes('fetch("./api/manage-users"'),"El cliente debe usar el endpoint seguro");
+assert(!client.slice(client.indexOf("async function updateProfile"),client.indexOf("async function inviteUser")).includes("request(TABLES.profiles"),"updateProfile no debe hacer PATCH directo");
+console.log("Seguridad de administración de permisos verificada.");

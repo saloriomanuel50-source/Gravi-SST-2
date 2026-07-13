@@ -1,0 +1,18 @@
+"use strict";
+const assert=require("assert"),fs=require("fs"),path=require("path");
+const root=path.resolve(__dirname,".."),read=f=>fs.readFileSync(path.join(root,f),"utf8");
+const supabase=read("src/supabase.js"),system=read("src/system.js"),sql=read("database/permissions_release_v38.sql");
+const {ALL_PERMISSION_KEYS:keys,ROLE_DEFAULTS,hasPermission}=require("../api/permissions-contract");
+for(const key of keys) assert(hasPermission({role:"Administrador",active:true},key),`Administrador: ${key}`);
+for(const key of ["contractors.create","contractors.edit","workers.create","workers.edit"]) assert(hasPermission({role:"Supervisor SST",active:true},key),`Supervisor SST: ${key}`);
+assert.strictEqual(hasPermission({role:"Supervisor SST",active:true,permissions_mode:"custom",custom_permissions:{"contractors.create":false}},"contractors.create"),false,"custom false retira");
+assert.strictEqual(hasPermission({role:"Consulta",active:true,permissions_mode:"custom",custom_permissions:{"contractors.create":true}},"contractors.create"),true,"custom true concede");
+assert.strictEqual(hasPermission({role:"Supervisor SST",active:true,permissions_mode:"custom",custom_permissions:{}},"workers.edit"),ROLE_DEFAULTS["Supervisor SST"].includes("workers.edit"),"clave ausente usa rol");
+assert.strictEqual(hasPermission({role:"Supervisor SST",active:false},"workers.edit"),false,"inactivo=false");
+assert.strictEqual(hasPermission({role:"Administrador",active:true},"unknown.permission"),false,"desconocido=false");
+assert(system.includes('canPermission("contractors.create")')&&system.includes('canPermission("workers.edit")'),"UI/JS de Fuerza de Trabajo");
+const snapshot=supabase.slice(supabase.indexOf("async function performSystemSync"),supabase.indexOf("function syncSystemData"));
+for(const table of ["TABLES.contractors","TABLES.workers","TABLES.attendance"]) assert(!snapshot.includes(table),`${table} no debe usar snapshot`);
+for(const fragment of ['createContractor:item=>mutateEntity("contractors","create","contractors.create"','updateContractor:item=>mutateEntity("contractors","update","contractors.edit"','createWorker:item=>mutateEntity("workers","create","workers.create"','updateWorker:item=>mutateEntity("workers","update","workers.edit"']) assert(supabase.includes(fragment),fragment);
+for(const fragment of ["'contractors.create'","'contractors.edit'","'workers.create'","'workers.edit'","revoke insert,update,delete on table public.perfiles_usuario from authenticated"]) assert(sql.includes(fragment),fragment);
+console.log("Permisos funcionales V38 verificados.");

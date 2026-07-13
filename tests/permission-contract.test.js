@@ -1,0 +1,18 @@
+"use strict";
+const assert=require("assert"),fs=require("fs"),path=require("path"),root=path.resolve(__dirname,".."),read=file=>fs.readFileSync(path.join(root,file),"utf8");
+const {ALL_PERMISSION_KEYS,ROLE_DEFAULTS}=require("../api/permissions-contract");
+const supabase=read("src/supabase.js"),system=read("src/system.js"),sql=read("database/permissions_full_v3.sql"),permits=read("database/work_permits.sql"),signatures=read("database/document_signatures.sql"),storage=read("database/storage_evidencias.sql");
+assert.strictEqual(new Set(ALL_PERMISSION_KEYS).size,ALL_PERMISSION_KEYS.length,"El catálogo no debe duplicar claves");
+for(const key of ALL_PERMISSION_KEYS)assert(supabase.includes(`["${key}",`)||supabase.includes(`"${key}"`),`El panel debe declarar ${key}`);
+for(const role of ["Administrador","Supervisor SST","Consulta"])for(const key of ROLE_DEFAULTS[role])assert(ALL_PERMISSION_KEYS.includes(key),`${role} contiene clave desconocida ${key}`);
+for(const key of ["visitors.view","visitors.register","visitors.edit"])assert(system.includes(key),`Visitantes debe usar ${key}`);
+for(const fragment of ["function searchIndex()","permission:\"contractors.view\"","permission:\"workers.view\"","permission:item.type===\"incident\"?\"incidents.view\":\"inspections.view\""])assert(system.includes(fragment),`Búsqueda debe filtrar: ${fragment}`);
+for(const fragment of ["syncEntityMutation","requiredPermission","No tienes autorizaci\\u00f3n para sincronizar esta operaci\\u00f3n","Guardado y sincronizado"])assert(supabase.includes(fragment),`Sincronización granular incompleta: ${fragment}`);
+for(const key of ALL_PERMISSION_KEYS)assert(sql.includes(`'${key}'`),`SQL central no contiene ${key}`);
+assert(permits.includes("select public.has_gravi_permission(p_key)"),"Permisos de trabajo debe delegar en has_gravi_permission");
+assert(!signatures.includes("has_work_permit_permission('signatures."),"Firmas no debe usar la matriz de permisos de trabajo");
+for(const key of ["signatures.view","signatures.capture","signatures.invalidate"])assert(signatures.includes(`has_gravi_permission('${key}')`),`Firmas SQL falta ${key}`);
+for(const key of ["evidence.view","evidence.upload","evidence.delete"])assert(storage.includes(key),`Storage falta ${key}`);
+assert(storage.includes("name not like 'work-permits/%'"),"La política general no debe ampliar work-permits/");
+for(const table of ["format_categories","dynamic_formats","format_fields","format_records","format_versions","format_field_templates"])assert(sql.includes(table),`RLS dinámica falta ${table}`);
+console.log("Contrato integral de permisos verificado.");

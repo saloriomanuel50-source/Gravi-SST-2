@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_NAME = "gravi-sst-v2-shell-v35";
+const CACHE_NAME = "gravi-sst-v2-shell-v38";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -17,16 +17,16 @@ const APP_SHELL = [
   "./src/styles/work-permits.css?v=1",
   "./src/styles/signatures.css?v=1",
   "./src/styles/print-documents.css?v=34",
-  "./src/app.js?v=2026-07-07-hotfix-charset",
-  "./src/supabase.js?v=2026-07-13-auth-v35",
+  "./src/app.js?v=2026-07-13-permissions-v38",
+  "./src/supabase.js?v=2026-07-13-permissions-v38",
   "./src/repositories.js?v=2026-07-07-hotfix-charset",
-  "./src/bootstrap.js?v=2026-07-13-auth-v35",
+  "./src/bootstrap.js?v=2026-07-13-permissions-v38",
   "./src/print/print-manager.js?v=34",
   "./src/corporate-documents.js?v=34",
   "./src/extensions.js?v=2026-07-07-hotfix-charset",
-  "./src/system.js?v=2026-07-13-print-v34",
-  "./src/work-permits.js?v=34",
-  "./src/signatures.js?v=1",
+  "./src/system.js?v=2026-07-13-permissions-v38",
+  "./src/work-permits.js?v=2026-07-13-permissions-v38",
+  "./src/signatures.js?v=2026-07-13-permissions-v38",
   "./src/dynamic-formats.js?v=2026-07-07-hotfix-charset",
   "./src/dynamic-formats-controller.js?v=2026-07-07-hotfix-charset",
   "./src/dynamic-formats-bootstrap.js?v=2026-07-07-hotfix-charset",

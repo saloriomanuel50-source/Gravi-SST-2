@@ -6,6 +6,7 @@
   const PENDING_KEY = "gvc-supabase-pending-v1";
   const SESSION_KEY = "gvc-supabase-session-v1";
   const PASSWORD_SETUP_PENDING_KEY = "gravi-password-setup-pending-v1";
+  const CACHE_OWNER_KEY = "gvc-sensitive-cache-owner-v1";
   const PASSWORD_SETUP_TTL_MS = 20 * 60 * 1000;
   const DYNAMIC_FORMATS_CACHE_KEY = "gvc-dynamic-formats-v1";
   const DYNAMIC_FORMATS_PENDING_KEY = "gvc-dynamic-formats-pending-v1";
@@ -40,19 +41,22 @@
   let currentProfile = null;
   const PERMISSION_GROUPS = Object.freeze([
     {id:"catalogs",label:"Cat\u00e1logos",permissions:[["works.view","Ver desarrollos y obras"],["developments.create","Crear desarrollos"],["developments.edit","Editar desarrollos"],["developments.archive","Archivar desarrollos"],["works.create","Crear obras"],["works.edit","Editar obras"],["works.archive","Archivar obras"]]},
-    {id:"workforce",label:"Fuerza de trabajo",permissions:[["contractors.view","Ver contratistas"],["contractors.create","Crear contratistas"],["contractors.edit","Editar contratistas"],["contractors.archive","Archivar contratistas"],["workers.view","Ver trabajadores"],["workers.create","Crear trabajadores"],["workers.edit","Editar trabajadores"],["workers.archive","Archivar trabajadores"],["visitors.view","Ver visitantes"],["visitors.register","Registrar visitantes"]]},
-    {id:"operation",label:"Operaci\u00f3n",permissions:[["attendance.view","Ver asistencia"],["attendance.register","Registrar asistencia"],["attendance.edit","Editar asistencia"],["operations.view","Ver operaciones"],["inspections.create","Crear inspecciones"],["inspections.edit","Editar inspecciones"],["incidents.view","Ver incidencias"],["incidents.create","Crear incidencias"],["incidents.edit","Editar incidencias"],["permits.view","Ver permisos de trabajo"],["permits.create","Crear permisos de trabajo"],["permits.edit","Editar permisos de trabajo"],["permits.review","Revisar permisos de trabajo"],["permits.authorize","Autorizar permisos de trabajo"],["permits.suspend","Suspender permisos de trabajo"],["permits.cancel","Cancelar permisos de trabajo"],["permits.close","Cerrar permisos de trabajo"],["permits.export","Exportar permisos de trabajo"]]},
+    {id:"workforce",label:"Fuerza de trabajo",permissions:[["contractors.view","Ver contratistas"],["contractors.create","Crear contratistas"],["contractors.edit","Editar contratistas"],["contractors.archive","Archivar contratistas"],["workers.view","Ver trabajadores"],["workers.create","Crear trabajadores"],["workers.edit","Editar trabajadores"],["workers.archive","Archivar trabajadores"],["visitors.view","Ver visitantes"],["visitors.register","Registrar visitantes"],["visitors.edit","Editar visitantes y registrar salida"]]},
+    {id:"operation",label:"Operaci\u00f3n",permissions:[["operations.view","Ver operaciones"],["attendance.view","Ver asistencia"],["attendance.register","Registrar asistencia"],["attendance.edit","Editar asistencia"],["inspections.view","Ver inspecciones"],["inspections.create","Crear inspecciones"],["inspections.edit","Editar inspecciones"],["incidents.view","Ver incidencias"],["incidents.create","Crear incidencias"],["incidents.edit","Editar incidencias"]]},
+    {id:"daily_reports",label:"Registro diario",permissions:[["daily_reports.view","Ver registros diarios"],["daily_reports.edit","Editar registros diarios"],["daily_reports.close","Cerrar registros diarios"],["daily_reports.validate","Validar registros diarios"],["daily_reports.reopen","Reabrir registros diarios"]]},
+    {id:"permits",label:"Permisos de trabajo",permissions:[["permits.view","Ver permisos de trabajo"],["permits.create","Crear permisos de trabajo"],["permits.edit","Editar permisos de trabajo"],["permits.review","Revisar permisos de trabajo"],["permits.authorize","Autorizar permisos de trabajo"],["permits.suspend","Suspender permisos de trabajo"],["permits.cancel","Cancelar permisos de trabajo"],["permits.close","Cerrar permisos de trabajo"],["permits.export","Exportar permisos de trabajo"]]},
+    {id:"evidence",label:"Evidencia",permissions:[["evidence.view","Ver evidencia"],["evidence.upload","Cargar evidencia"],["evidence.delete","Eliminar evidencia"]]},
     {id:"compliance",label:"Cumplimiento",permissions:[["compliance.view","Ver cumplimiento"],["compliance.edit","Editar cumplimiento"],["compliance.monthly_report","Generar reporte mensual"],["compliance.nom_matrix","Administrar matriz NOM"]]},
-    {id:"intelligence",label:"Inteligencia",permissions:[["documents.view","Ver documentos"],["documents.generate","Generar documentos/PDF"],["reports.view","Ver reportes"],["reports.generate","Generar reportes"],["histories.global","Ver hist\u00f3ricos generales"],["histories.work","Ver hist\u00f3ricos de obra"],["audit.view","Ver bit\u00e1cora"]]},
+    {id:"intelligence",label:"Inteligencia",permissions:[["documents.view","Ver documentos"],["documents.generate","Generar documentos/PDF"],["documents.manage","Administrar plantillas"],["reports.view","Ver reportes"],["reports.generate","Generar reportes"],["histories.global","Ver hist\u00f3ricos generales"],["histories.work","Ver hist\u00f3ricos de obra"],["audit.view","Ver bit\u00e1cora"]]},
     {id:"signatures",label:"Firmas manuscritas",permissions:[["signatures.view","Ver firmas manuscritas"],["signatures.capture","Capturar firmas manuscritas"],["signatures.invalidate","Invalidar firmas manuscritas"],["signatures.export","Incluir firmas en documentos"]]},
-    {id:"administration",label:"Administraci\u00f3n",permissions:[["users.invite","Invitar usuarios"],["users.edit","Editar usuarios"],["users.change_roles","Cambiar roles"],["users.manage_permissions","Editar permisos"],["users.deactivate","Desactivar usuarios"]]}
+    {id:"administration",label:"Administraci\u00f3n",permissions:[["users.view","Ver usuarios"],["users.invite","Invitar usuarios"],["users.edit","Editar usuarios"],["users.change_roles","Cambiar roles"],["users.manage_permissions","Editar permisos"],["users.deactivate","Desactivar usuarios"]]}
   ]);
   const ALL_PERMISSION_KEYS = PERMISSION_GROUPS.flatMap(group => group.permissions.map(item => item[0]));
-  const READ_PERMISSION_KEYS = ALL_PERMISSION_KEYS.filter(key => key.endsWith(".view") || key.startsWith("histories.") || key === "audit.view" || key === "works.view");
+  const CONSULTA_PERMISSION_KEYS = ["works.view","contractors.view","workers.view","visitors.view","operations.view","attendance.view","inspections.view","incidents.view","daily_reports.view","permits.view","evidence.view","compliance.view","documents.view","reports.view","histories.global","histories.work","audit.view","signatures.view"];
   const ROLE_PERMISSION_KEYS = Object.freeze({
     "Administrador":ALL_PERMISSION_KEYS,
-    "Supervisor SST":["works.view","contractors.view","contractors.create","contractors.edit","workers.view","workers.create","workers.edit","visitors.view","visitors.register","attendance.view","attendance.register","attendance.edit","operations.view","inspections.create","inspections.edit","incidents.view","incidents.create","incidents.edit","permits.view","permits.create","permits.edit","permits.review","permits.authorize","permits.suspend","permits.cancel","permits.close","permits.export","signatures.view","signatures.capture","signatures.invalidate","signatures.export","compliance.view","compliance.edit","compliance.monthly_report","documents.view","documents.generate","reports.view","reports.generate","histories.work","audit.view"],
-    "Consulta":READ_PERMISSION_KEYS
+    "Supervisor SST":["works.view","contractors.view","contractors.create","contractors.edit","workers.view","workers.create","workers.edit","visitors.view","visitors.register","visitors.edit","operations.view","attendance.view","attendance.register","attendance.edit","inspections.view","inspections.create","inspections.edit","incidents.view","incidents.create","incidents.edit","daily_reports.view","daily_reports.edit","daily_reports.close","daily_reports.validate","permits.view","permits.create","permits.edit","permits.review","permits.authorize","permits.suspend","permits.cancel","permits.close","permits.export","evidence.view","evidence.upload","compliance.view","compliance.edit","compliance.monthly_report","documents.view","documents.generate","reports.view","reports.generate","histories.work","audit.view","signatures.view","signatures.capture","signatures.invalidate","signatures.export"],
+    "Consulta":CONSULTA_PERMISSION_KEYS
   });
 
   function readJson(key, fallback) {
@@ -101,6 +105,7 @@
 
   function effectivePermissions(profile=currentProfile) {
     if (!profile) return permissionDefaults("Consulta");
+    if (profile.active === false) return Object.fromEntries(ALL_PERMISSION_KEYS.map(key => [key, false]));
     if (profile.role === "Administrador") return permissionDefaults("Administrador");
     const settings = permissionSettingsFor(profile);
     if (settings.permissions_mode === "custom") return {...permissionDefaults(profile.role), ...settings.custom_permissions};
@@ -108,8 +113,12 @@
   }
 
   function canPermission(permissionKey, profile=currentProfile) {
-    return Boolean(effectivePermissions(profile)[permissionKey]);
+    return ALL_PERMISSION_KEYS.includes(permissionKey) && Boolean(effectivePermissions(profile)[permissionKey]);
   }
+
+  function canAnyPermission(keys=[], profile=currentProfile) { return keys.some(key => canPermission(key, profile)); }
+  function requirePermission(key, message="No tienes autorizaci\u00f3n para realizar esta operaci\u00f3n.") { if (!canPermission(key)) throw new Error(message); return true; }
+  function applyPermissionVisibility(root=document) { root.querySelectorAll?.("[data-permission]").forEach(element => { element.classList.toggle("permission-hidden", !canPermission(element.dataset.permission)); }); }
 
   function normalizePermissionSettings(settings={}) {
     return {
@@ -179,6 +188,9 @@
 
   function saveSession(session) {
     if (!session) { localStorage.removeItem(SESSION_KEY); return; }
+    const nextOwner=session.user?.id||"",previousOwner=localStorage.getItem(CACHE_OWNER_KEY)||"";
+    if(nextOwner&&previousOwner&&nextOwner!==previousOwner)clearSensitiveCache();
+    if(nextOwner)localStorage.setItem(CACHE_OWNER_KEY,nextOwner);
     if (!session.expires_at && session.expires_in) session.expires_at = Math.floor(Date.now() / 1000) + Number(session.expires_in);
     currentSession = session;
     writeJson(SESSION_KEY, session);
@@ -420,6 +432,7 @@
   }
 
   async function uploadEvidence(record, evidence) {
+    requirePermission("evidence.upload","Tu perfil no permite cargar evidencia.");
     if (!configured || !currentSession?.access_token || !isDataUrl(evidence.src) || evidence.storagePath) return evidence;
     const extension = evidence.src.startsWith("data:image/png") ? "png" : "jpg";
     const workId = String(record.workId || "legacy").replace(/[^a-zA-Z0-9_-]/g, "_");
@@ -480,7 +493,7 @@
   }
 
   async function performSystemSync(data, queueOnFailure=true) {
-    if (!can("operational-state") && !can("admin-write")) return false;
+    if (!can("admin-write")) return false;
     if (!configured) {
       if (queueOnFailure) queueSnapshot("system", data);
       emitStatus("cached", "Caché local; Supabase sin configurar");
@@ -488,28 +501,16 @@
     }
     emitStatus("syncing", "Sincronizando...");
     try {
-      if (can("admin-write")) {
-        await upsert(TABLES.developments, developmentRows(data));
-        await upsert(TABLES.works, workRows(data));
-        await upsert(TABLES.contractors, scopedRows(data.contractors, {name:"name",status:"status"}));
-      }
-      await upsert(TABLES.workers, scopedRows(data.workers, {name:"name",status:"status",contractor_id:"contractorId"}));
-      await Promise.all([
-        upsert(TABLES.visitors, scopedRows(data.visitors, {visit_date:"date",name:"name"})),
-        upsert(TABLES.attendance, attendanceRows(data), "work_id,attendance_date"),
-        upsert(TABLES.investigations, scopedRows(data.investigations, {folio:"folio",event_date:"date"})),
-        upsert(TABLES.histories, scopedRows(data.histories, {document_type:"type",document_date:"date",folio:"folio"})),
-        upsert(TABLES.state, [{id:"global",payload:statePayload(data),updated_at:new Date().toISOString()}]),
-        can("admin-write") ? upsert(TABLES.compliance, [{id:"global",payload:compliancePayload(data),updated_at:new Date().toISOString()}]) : Promise.resolve()
-      ]);
+      await upsert(TABLES.state,[{id:"global",payload:statePayload(data),updated_at:new Date().toISOString()}]);
       const pending = readJson(PENDING_KEY, {system:null,records:{}});
       pending.system = null;
       writeJson(PENDING_KEY, pending);
       emitStatus("synced", "Sincronizado con Supabase");
       return true;
     } catch (error) {
-      if (queueOnFailure) queueSnapshot("system", data);
-      emitStatus("error", "Error de sincronización; datos conservados localmente");
+      const permissionDenied = isPermissionSyncError(error);
+      if (!permissionDenied && queueOnFailure) queueSnapshot("system", data);
+      emitStatus(permissionDenied ? "error" : "cached", permissionDenied ? "Supabase rechazó la operación por permisos. Los cambios no fueron confirmados." : "Guardado localmente; pendiente de sincronización");
       console.error("Error al sincronizar el sistema con Supabase.", error);
       return false;
     }
@@ -522,7 +523,7 @@
   }
 
   function scheduleSystemSync(data) {
-    if (!can("operational-state") && !can("admin-write")) return;
+    if (!can("admin-write")) return;
     pendingSystemSnapshot = clone(data);
     clearTimeout(syncTimer);
     syncTimer = setTimeout(() => {
@@ -633,10 +634,11 @@
   }
 
   async function loadRemote() {
+    const permitted=(key,table)=>canPermission(key)?selectAll(table):Promise.resolve([]);
     const [developments,works,contractors,workers,visitors,attendance,investigations,histories,records,state,compliance] = await Promise.all([
-      selectAll(TABLES.developments), selectAll(TABLES.works), selectAll(TABLES.contractors), selectAll(TABLES.workers),
-      selectAll(TABLES.visitors), selectAll(TABLES.attendance), selectAll(TABLES.investigations), selectAll(TABLES.histories),
-      selectAll(TABLES.records), selectAll(TABLES.state), selectAll(TABLES.compliance)
+      permitted("works.view",TABLES.developments), permitted("works.view",TABLES.works), permitted("contractors.view",TABLES.contractors), permitted("workers.view",TABLES.workers),
+      permitted("visitors.view",TABLES.visitors), permitted("attendance.view",TABLES.attendance), permitted("incidents.view",TABLES.investigations), canAnyPermission(["histories.global","histories.work"])?selectAll(TABLES.histories):Promise.resolve([]),
+      canAnyPermission(["incidents.view","inspections.view"])?selectAll(TABLES.records):Promise.resolve([]), permitted("works.view",TABLES.state), permitted("compliance.view",TABLES.compliance)
     ]);
     return {developments,works,contractors,workers,visitors,attendance,investigations,histories,records,state,compliance};
   }
@@ -669,6 +671,7 @@
       return {configured:true,authenticated:true,source:"supabase"};
     } catch (error) {
       emitStatus("error", "Supabase no disponible; usando caché local");
+      if(isPermissionSyncError(error)){clearSensitiveCache();emitStatus("error","Tu sesi\u00f3n ya no tiene acceso a estos datos.");return {configured:true,authenticated:true,source:"denied",error};}
       console.error("No fue posible cargar datos desde Supabase.", error);
       return {configured:true,authenticated:true,source:"cache",error};
     }
@@ -712,7 +715,7 @@
     }
     if (!await restoreSession()) return {configured:true,authenticated:false};
     const result = await loadAuthenticatedData();
-    await prepareDailyReports();
+    if(canPermission("daily_reports.view"))await prepareDailyReports();
     return result;
   }
 
@@ -744,6 +747,67 @@
     clearSensitiveCache();
   }
 
+  function mutationStore() {
+    const pending = readJson(PENDING_KEY, {system:null,records:{},mutations:[]});
+    pending.mutations ||= [];
+    return pending;
+  }
+
+  async function syncEntityMutation({entity,operation,requiredPermission,id,data:mutationData,workId=null,clientMutationId=crypto.randomUUID()}) {
+    if (!TABLES[entity] && !Object.values(TABLES).includes(entity)) throw new Error(`Entidad de sincronizaci\u00f3n desconocida: ${entity}`);
+    requirePermission(requiredPermission, "No tienes autorizaci\u00f3n para sincronizar esta operaci\u00f3n.");
+    const table = TABLES[entity] || entity;
+    const createdAt=new Date().toISOString(),mutation = {entity,operation,requiredPermission,id,data:clone(mutationData || {}),workId,clientMutationId,userId:currentSession?.user?.id || null,createdAt};
+    if (!configured || !currentSession?.access_token) {
+      const pending = mutationStore(); pending.mutations.push(mutation); writeJson(PENDING_KEY,pending);
+      emitStatus("cached","Guardado localmente; pendiente de sincronizaci\u00f3n.");
+      return {success:false,pending:true,clientMutationId};
+    }
+    try {
+      const method = operation === "create" ? "POST" : operation === "delete" ? "DELETE" : "PATCH";
+      const query = operation === "create" ? "" : entity==="attendance" ? `?work_id=eq.${encodeURIComponent(workId)}&attendance_date=eq.${encodeURIComponent(String(id).split("|").pop())}` : `?id=eq.${encodeURIComponent(id)}`;
+      const body = operation === "delete" ? undefined : entity === "attendance" ? {...mutation.data} : {...mutation.data,id:operation === "create" ? id : mutation.data.id};
+      await request(table,{method,query,body,headers:{Prefer:"return=minimal"},returnMinimal:true});
+      emitStatus("synced","Guardado y sincronizado.");
+      return {success:true,pending:false,clientMutationId};
+    } catch(error) {
+      if (isPermissionSyncError(error)) { emitStatus("error","No tienes autorizaci\u00f3n para sincronizar esta operaci\u00f3n."); throw error; }
+      if (/409|conflict|version/i.test(String(error.message))) { emitStatus("error","Existe una versi\u00f3n m\u00e1s reciente. Recarga antes de continuar."); throw error; }
+      const pending = mutationStore(); pending.mutations.push(mutation); writeJson(PENDING_KEY,pending);
+      emitStatus("cached","Guardado localmente; pendiente de sincronizaci\u00f3n.");
+      return {success:false,pending:true,clientMutationId};
+    }
+  }
+
+  async function flushEntityMutations() {
+    const pending = mutationStore(), queued=[...pending.mutations],owner=currentSession?.user?.id||null;
+    pending.mutations=[];writeJson(PENDING_KEY,pending);
+    for (const mutation of queued) {
+      if (mutation.userId!==owner||!canPermission(mutation.requiredPermission)) continue;
+      try { await syncEntityMutation(mutation); } catch(error) { if(!isPermissionSyncError(error)){const store=mutationStore();store.mutations.push(mutation);writeJson(PENDING_KEY,store);} }
+    }
+    return {pending:mutationStore().mutations.length};
+  }
+
+  const mutationScopedRow=(item,columns={})=>{const row={...baseRow(item),work_id:item.workId||"legacy"};Object.entries(columns).forEach(([column,source])=>row[column]=item[source]??null);return row;};
+  const mutationPayload={
+    contractors:item=>mutationScopedRow(item,{name:"name",status:"status"}),workers:item=>mutationScopedRow(item,{name:"name",status:"status",contractor_id:"contractorId"}),
+    visitors:item=>mutationScopedRow(item,{visit_date:"date",name:"name"}),investigations:item=>mutationScopedRow(item,{folio:"folio",event_date:"date"}),
+    records:item=>recordRow(item),compliance:item=>({id:item.id||"global",payload:clone(item.payload||item),updated_at:new Date().toISOString()}),
+    attendance:item=>({work_id:item.workId,attendance_date:item.date,marks:clone(item.marks||{}),payload:clone(item.payload||{}),updated_at:new Date().toISOString()})
+  };
+  function mutateEntity(entity,operation,permission,item){const row=mutationPayload[entity](item);return syncEntityMutation({entity,operation,requiredPermission:permission,id:item.id||`${item.workId}|${item.date}`,data:row,workId:item.workId||null,clientMutationId:item.clientMutationId||crypto.randomUUID()});}
+  const entityMutations=Object.freeze({
+    createContractor:item=>mutateEntity("contractors","create","contractors.create",item),updateContractor:item=>mutateEntity("contractors","update","contractors.edit",item),
+    createWorker:item=>mutateEntity("workers","create","workers.create",item),updateWorker:item=>mutateEntity("workers","update","workers.edit",item),
+    createVisitor:item=>mutateEntity("visitors","create","visitors.register",item),updateVisitor:item=>mutateEntity("visitors","update","visitors.edit",item),
+    registerAttendance:async item=>{let exists=Boolean(item.remoteExists);if(configured&&currentSession?.access_token){const rows=await request(TABLES.attendance,{query:`?work_id=eq.${encodeURIComponent(item.workId)}&attendance_date=eq.${encodeURIComponent(item.date)}&select=work_id`});exists=Boolean(rows?.length);}return mutateEntity("attendance",exists?"update":"create","attendance.register",item);},editAttendance:item=>mutateEntity("attendance","update","attendance.edit",item),
+    createInspection:item=>mutateEntity("records","create","inspections.create",item),updateInspection:item=>mutateEntity("records","update","inspections.edit",item),
+    createIncident:item=>mutateEntity("records","create","incidents.create",item),updateIncident:item=>mutateEntity("records","update","incidents.edit",item),
+    createInvestigation:item=>mutateEntity("investigations","create","incidents.create",item),updateInvestigation:item=>mutateEntity("investigations","update","incidents.edit",item),
+    updateCompliance:item=>mutateEntity("compliance","update","compliance.edit",item),saveMonthlyCompliance:item=>mutateEntity("compliance","update","compliance.monthly_report",item),updateNomMatrix:item=>mutateEntity("compliance","update","compliance.nom_matrix",item)
+  });
+
   async function updatePassword(password) {
     if (!await ensureConfigured()) throw new Error("Supabase no est\u00e1 configurado en este despliegue.");
     await ensureFreshSession();
@@ -761,37 +825,25 @@
   }
 
   async function listProfiles() {
-    if (!can("admin-write") && !canPermission("users.edit") && !canPermission("users.manage_permissions") && !canPermission("users.invite")) throw new Error("Tu rol no permite consultar usuarios.");
-    const rows = await request(TABLES.profiles, {query:"?select=*&order=full_name.asc"});
-    const migrated = [];
-    for (const profile of rows) {
-      const fallback = fallbackPermissionSettingsFor(profile);
-      if (fallback && can("admin-write")) {
-        const settings = normalizePermissionSettings(fallback);
-        try {
-          await request(TABLES.profiles, {method:"PATCH",query:`?user_id=eq.${encodeURIComponent(profile.user_id)}`,headers:{"Prefer":"return=minimal"},body:{...settings,updated_at:new Date().toISOString()},returnMinimal:true});
-          removeMigratedLocalPermissions(profile.user_id, profile.email);
-          migrated.push({...profile, ...settings});
-          continue;
-        } catch (error) {
-          console.warn("No fue posible migrar permisos locales a Supabase.", error);
-        }
-      }
-      const settings = permissionSettingsFor(profile);
-      migrated.push({...profile, ...settings});
-    }
-    return migrated;
+    requirePermission("users.view","Tu rol no permite consultar usuarios.");
+    const response=await fetch("./api/manage-users",{headers:{Authorization:`Bearer ${currentSession.access_token}`}}),payload=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(payload.error||"No fue posible consultar usuarios.");
+    return payload;
   }
 
-  async function updateProfile(userId, role, active, permissionSettings=null) {
-    if (!can("admin-write") && !canPermission("users.edit")) throw new Error("Tu rol no permite modificar usuarios.");
-    if (permissionSettings && !can("admin-write") && !canPermission("users.manage_permissions")) throw new Error("Tu rol no permite editar permisos.");
-    if (userId === currentSession.user.id && (role !== "Administrador" || !active)) throw new Error("No puedes retirar tu propio acceso de Administrador.");
-    const settings = permissionSettings ? normalizePermissionSettings(permissionSettings) : null;
-    const body = {role,active,updated_at:new Date().toISOString(),...(settings || {})};
-    await request(TABLES.profiles, {method:"PATCH",query:`?user_id=eq.${encodeURIComponent(userId)}`,headers:{"Prefer":"return=minimal"},body,returnMinimal:true});
+  async function updateProfile(userId, changes={}) {
+    const body={userId};
+    if(Object.prototype.hasOwnProperty.call(changes,"full_name"))body.full_name=changes.full_name;
+    if(Object.prototype.hasOwnProperty.call(changes,"role"))body.role=changes.role;
+    if(Object.prototype.hasOwnProperty.call(changes,"active"))body.active=changes.active;
+    if(Object.prototype.hasOwnProperty.call(changes,"permissions_mode"))body.permissions_mode=changes.permissions_mode;
+    if(Object.prototype.hasOwnProperty.call(changes,"custom_permissions"))body.custom_permissions={...changes.custom_permissions};
+    if(Object.keys(body).length===1)return {ok:true,unchanged:true};
+    const response=await fetch("./api/manage-users",{method:"PATCH",headers:{Authorization:`Bearer ${currentSession.access_token}`,"Content-Type":"application/json"},body:JSON.stringify(body)}),payload=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(payload.error||"No fue posible modificar el usuario.");
     removeMigratedLocalPermissions(userId);
-    if (currentProfile?.user_id === userId) currentProfile = {...currentProfile, ...body};
+    if (currentProfile?.user_id === userId) currentProfile = {...currentProfile, ...(payload.profile||body)};
+    return payload;
   }
 
   async function inviteUser({email,fullName,role,permissions=null}) {
@@ -827,6 +879,7 @@
   }
 
   async function listDynamicFormats(filters={}) {
+    if(!canPermission("documents.view"))return {success:false,error:"Tu perfil no permite consultar formatos.",data:[]};
     const cache = dynamicFormatsCache();
     let formats = cache.formats.filter(item => !item.deletedAt);
     if (filters.workId) formats = formats.filter(item => !item.workId || item.workId === filters.workId);
@@ -841,7 +894,7 @@
   }
 
   async function saveDynamicFormat(payload={}) {
-    if (!can("admin-write")) return {success:false,error:"Solo un Administrador puede guardar formatos."};
+    if (!canPermission("documents.manage")) return {success:false,error:"Tu perfil no permite administrar formatos."};
     const cache = dynamicFormatsCache();
     const now = new Date().toISOString();
     const item = {...payload,id:payload.id || crypto.randomUUID(),createdAt:payload.createdAt || now,updatedAt:now};
@@ -853,7 +906,7 @@
   }
 
   async function deleteDynamicFormat(id) {
-    if (!can("admin-write")) return {success:false,error:"Solo un Administrador puede eliminar formatos."};
+    if (!canPermission("documents.manage")) return {success:false,error:"Tu perfil no permite administrar formatos."};
     const cache = dynamicFormatsCache();
     const item = cache.formats.find(format => format.id === id);
     if (item) {
@@ -866,7 +919,7 @@
   }
 
   async function createDynamicFormatRecord(payload={}) {
-    if (!can("field-write")) return {success:false,error:"Tu rol no permite crear registros de formatos."};
+    if (!canPermission("documents.generate")) return {success:false,error:"Tu perfil no permite generar documentos."};
     const cache = dynamicFormatsCache();
     const now = new Date().toISOString();
     const item = {...payload,id:payload.id || crypto.randomUUID(),createdAt:payload.createdAt || now,updatedAt:now};
@@ -877,7 +930,7 @@
   }
 
   async function updateDynamicFormatRecord(id, updates={}) {
-    if (!can("field-write")) return {success:false,error:"Tu rol no permite actualizar registros de formatos."};
+    if (!canPermission("documents.generate")) return {success:false,error:"Tu perfil no permite generar documentos."};
     const cache = dynamicFormatsCache();
     const item = cache.records.find(record => record.id === id);
     if (item) Object.assign(item, updates, {updatedAt:new Date().toISOString()});
@@ -1002,6 +1055,20 @@
     writeJson(PENDING_KEY, pending);
   }
 
+  async function syncPermissionRows(table, rows, createPermission, editPermission) {
+    const canCreate = canPermission(createPermission);
+    const canEdit = canPermission(editPermission);
+    if (!canCreate && !canEdit) return;
+    const existing = await request(table, {query:"?select=id"});
+    const existingIds = new Set((existing || []).map(row => row.id));
+    if (canCreate) await upsert(table, rows.filter(row => !existingIds.has(row.id)));
+    if (canEdit) await upsert(table, rows.filter(row => existingIds.has(row.id)));
+  }
+
+  function isPermissionSyncError(error) {
+    return /\b(401|403)\b|42501|permission|row-level security|policy/i.test(String(error?.message || ""));
+  }
+
   function clearQueuedDailyReport(item, mutationId) {
     const pending = dailyReportPendingStore();
     const key = dailyReportQueueKey(item);
@@ -1010,6 +1077,7 @@
   }
 
   async function refreshDailyReports() {
+    requirePermission("daily_reports.view","Tu perfil no permite consultar registros diarios.");
     if (!configured || !currentSession?.access_token) return dailyReportCache();
     try {
       const rows = await selectAll(TABLES.dailyReports);
@@ -1027,6 +1095,7 @@
   }
 
   async function saveDailyReportDraft(item, options={}) {
+    requirePermission("daily_reports.edit","Tu perfil no permite editar registros diarios.");
     const report = {...clone(item),shift:item.shift || "Matutino",timezone:item.timezone || "America/Mazatlan",status:"draft"};
     report.id = report.id && String(report.id).split("|").length >= 3 ? report.id : dailyReportIdentity(report);
     const mutationId = crypto.randomUUID();
@@ -1058,6 +1127,7 @@
   }
 
   async function closeDailyReportManual(item) {
+    requirePermission("daily_reports.close","Tu perfil no permite cerrar registros diarios.");
     if (!configured || !currentSession?.access_token) throw new Error("El cierre oficial requiere conexi\u00f3n con Supabase.");
     const draft = await saveDailyReportDraft({...item,status:"draft"},{expectedVersion:item.version ?? null});
     if (!draft.success) throw draft.error || new Error("No fue posible sincronizar el borrador antes del cierre.");
@@ -1071,6 +1141,7 @@
   }
 
   async function confirmDailyReportAutomatic(item) {
+    requirePermission("daily_reports.validate","Tu perfil no permite validar registros diarios.");
     if (!configured || !currentSession?.access_token) throw new Error("La validación requiere conexión con Supabase.");
     const result = await request("rpc/confirm_daily_report_automatic", {
       method:"POST",
@@ -1082,6 +1153,7 @@
   }
 
   async function flushDailyReportPending() {
+    if(!canPermission("daily_reports.edit")){const pending=dailyReportPendingStore();pending.dailyReports={};writeJson(PENDING_KEY,pending);return{pending:0};}
     const userId = currentSession?.user?.id || currentProfile?.user_id || null;
     const entries = Object.values(dailyReportPendingStore().dailyReports).filter(entry => entry.userId === userId);
     for (const entry of entries) await saveDailyReportDraft(entry.item,{expectedVersion:entry.item.version ?? null});
@@ -1154,11 +1226,13 @@
     return {id:row.id,remoteId:row.id,clientMutationId:row.client_mutation_id||row.id,folio:row.folio,workflowMode:row.workflow_mode||"supervisor_direct",contractorResponsible:row.contractor_responsible,contractorRole:row.contractor_role,preparedBySupervisor:row.prepared_by_supervisor,authorizedBySupervisor:row.authorized_by_supervisor,contractorUserId:row.contractor_user_id,contractorAcknowledgement:row.contractor_acknowledgement,contractorSignature:row.contractor_signature,contractorSignedAt:row.contractor_signed_at,contractorRequestStatus:row.contractor_request_status,developmentName:row.development_name,workName:row.work_name,contractorName:row.contractor_name,residentName:row.resident_name,requesterName:row.requester_name,activity:row.activity,description:row.description,executionArea:row.execution_area,workerCount:row.worker_count,preparedAt:row.prepared_at,startsAt:row.starts_at,endsAt:row.ends_at,status:row.status,maxRisk:row.max_risk_level,maxResidualRisk:row.max_residual_risk_level,workTypes:row.work_types||[],controls:row.activity_controls||{},hazards:row.hazards||[],ppe:row.ppe||[],equipment:row.additional_equipment||[],preventive:row.preventive_measures||[],participants:row.participants||[],additionalRequirements:row.additional_requirements||"",extensions:row.extensions||[],documentCode:row.document_code,formVersion:row.form_version,version:Number(row.revision||1),authorizedSnapshot:row.authorized_snapshot,pdfUrl:row.pdf_url,remoteUpdatedAt:row.updated_at,syncState:"synced"};
   }
   async function listWorkPermits() {
+    requirePermission("permits.view","Tu perfil no permite consultar permisos de trabajo.");
     if (!configured || !currentSession?.access_token) return [];
     const rows=await request(TABLES.workPermits,{query:"?select=*&order=updated_at.desc"});
     return (rows||[]).map(workPermitFromRow);
   }
   async function upsertWorkPermit(item, expectedUpdatedAt=null) {
+    requirePermission(item.remoteId?"permits.edit":"permits.create","Tu perfil no permite guardar este permiso de trabajo.");
     if (!configured || !currentSession?.access_token) throw new Error("La sincronización requiere una sesión activa.");
     if (expectedUpdatedAt && item.remoteId) {
       const current=await request(TABLES.workPermits,{query:`?id=eq.${encodeURIComponent(item.remoteId)}&select=updated_at`});
@@ -1168,11 +1242,14 @@
     return workPermitFromRow(Array.isArray(rows)?rows[0]:rows);
   }
   async function transitionWorkPermit(id,toStatus,observations="") {
+    const required={pending_review:"permits.review",rejected:"permits.review",authorized:"permits.authorize",active:"permits.authorize",suspended:"permits.suspend",cancelled:"permits.cancel",closed:"permits.close"}[toStatus];
+    requirePermission(required||"permits.edit","Tu perfil no permite realizar esta transici\u00f3n.");
     if (!configured || !currentSession?.access_token) throw new Error("La transición requiere conexión y sesión activa.");
     const rows=await request("rpc/transition_work_permit",{method:"POST",body:{p_permit_id:id,p_to_status:toStatus,p_observations:observations}});
     return workPermitFromRow(Array.isArray(rows)?rows[0]:rows);
   }
   async function uploadWorkPermitFile({permitId,workId,type,fileName,mimeType,data}) {
+    requirePermission("permits.edit","Tu perfil no permite cargar evidencia al permiso.");
     if (!configured || !currentSession?.access_token) throw new Error("La carga requiere conexión y sesión activa.");
     const safeType=String(type||"general").replace(/[^a-z0-9_-]/gi,"_");
     const safeName=String(fileName||`${crypto.randomUUID()}.jpg`).replace(/[^a-z0-9._-]/gi,"_");
@@ -1182,11 +1259,13 @@
     return storagePath;
   }
   async function saveWorkPermitEvidence(metadata) {
+    requirePermission("permits.edit","Tu perfil no permite guardar evidencia del permiso.");
     const rows=await request("work_permit_evidence",{method:"POST",headers:{Prefer:"return=representation"},body:{permit_id:metadata.permitId,control_key:metadata.controlKey||null,evidence_type:metadata.type,storage_path:metadata.storagePath,caption:metadata.caption||"",metadata:metadata.metadata||{},created_by:currentSession.user.id}});
     return Array.isArray(rows)?rows[0]:rows;
   }
   const workPermits=Object.freeze({list:listWorkPermits,upsert:upsertWorkPermit,transition:transitionWorkPermit,uploadFile:uploadWorkPermitFile,saveEvidence:saveWorkPermitEvidence});
   async function uploadDocumentSignature(item) {
+    requirePermission("signatures.capture","Tu perfil no permite capturar firmas.");
     if (!configured || !currentSession?.access_token) throw new Error("La firma requiere conexión y sesión activa.");
     const safe=value=>String(value||"unknown").replace(/[^a-z0-9_-]/gi,"_");
     const storagePath=`${safe(item.documentType)}/${safe(item.documentId)}/v${safe(item.documentVersion)}/${safe(item.signatureSlot)}/${item.clientUuid}.png`;
@@ -1197,14 +1276,14 @@
     await request("document_signature_events",{method:"POST",headers:{Prefer:"return=minimal"},returnMinimal:true,body:{signature_id:signature.id,event_type:"sync_completed",details:{storage_path:storagePath},actor_user_id:currentSession.user.id}});
     return signature;
   }
-  async function listDocumentSignatures(documentType,documentId){if(!configured||!currentSession?.access_token)return[];return request("document_signatures",{query:`?document_type=eq.${encodeURIComponent(documentType)}&document_id=eq.${encodeURIComponent(documentId)}&select=*&order=signed_at.asc`})}
-  async function invalidateDocumentSignatures(documentType,documentId,documentVersion,reason){return request("rpc/invalidate_document_signatures",{method:"POST",body:{p_document_type:documentType,p_document_id:documentId,p_document_version:documentVersion,p_reason:reason}})}
-  async function signedSignatureUrl(path,expiresIn=900){const response=await fetch(`${config.url}/storage/v1/object/sign/document-signatures/${path}`,{method:"POST",headers:{Authorization:`Bearer ${currentSession.access_token}`,apikey:config.anonKey,"Content-Type":"application/json"},body:JSON.stringify({expiresIn})});if(!response.ok)throw new Error("No fue posible consultar la firma.");const data=await response.json();return`${config.url}/storage/v1${data.signedURL}`}
+  async function listDocumentSignatures(documentType,documentId){requirePermission("signatures.view","Tu perfil no permite consultar firmas.");if(!configured||!currentSession?.access_token)return[];return request("document_signatures",{query:`?document_type=eq.${encodeURIComponent(documentType)}&document_id=eq.${encodeURIComponent(documentId)}&select=*&order=signed_at.asc`})}
+  async function invalidateDocumentSignatures(documentType,documentId,documentVersion,reason){requirePermission("signatures.invalidate","Tu perfil no permite invalidar firmas.");return request("rpc/invalidate_document_signatures",{method:"POST",body:{p_document_type:documentType,p_document_id:documentId,p_document_version:documentVersion,p_reason:reason}})}
+  async function signedSignatureUrl(path,expiresIn=900){requirePermission("signatures.export","Tu perfil no permite exportar firmas.");const response=await fetch(`${config.url}/storage/v1/object/sign/document-signatures/${path}`,{method:"POST",headers:{Authorization:`Bearer ${currentSession.access_token}`,apikey:config.anonKey,"Content-Type":"application/json"},body:JSON.stringify({expiresIn})});if(!response.ok)throw new Error("No fue posible consultar la firma.");const data=await response.json();return`${config.url}/storage/v1${data.signedURL}`}
   const signatures=Object.freeze({upload:uploadDocumentSignature,list:listDocumentSignatures,invalidate:invalidateDocumentSignatures,signedUrl:signedSignatureUrl});
 
   global.GraviSupabase = {
-    bootstrap, login, logout, scheduleSystemSync, syncSystemData, upsertRecord, syncRecords,
-    listProfiles, updateProfile, inviteUser, updatePassword, loadCurrentProfileAndData, processAuthRedirect, resumePasswordSetup, clearPasswordSetupPending, clearAuthRedirectUrl, hasAuthRedirect, can, canPermission, dynamicFormats, dailyReports, workPermits, signatures,
+    bootstrap, login, logout, scheduleSystemSync, syncSystemData, syncEntityMutation, flushEntityMutations, entityMutations, upsertRecord, syncRecords,
+    listProfiles, updateProfile, inviteUser, updatePassword, loadCurrentProfileAndData, processAuthRedirect, resumePasswordSetup, clearPasswordSetupPending, clearAuthRedirectUrl, hasAuthRedirect, can, canPermission, canAnyPermission, requirePermission, applyPermissionVisibility, dynamicFormats, dailyReports, workPermits, signatures,
     permissionGroups:() => clone(PERMISSION_GROUPS),
     roleDefaultPermissions:role => permissionDefaults(role),
     getProfilePermissions:profile => ({settings:permissionSettingsFor(profile || currentProfile || {}), effective:effectivePermissions(profile || currentProfile || {})}),

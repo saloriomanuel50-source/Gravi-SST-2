@@ -1,7 +1,7 @@
 (async function startGraviApplication(){
   "use strict";
 
-  const scripts = ["./src/print/print-manager.js?v=34","./src/app.js","./src/corporate-documents.js","./src/extensions.js?v=2","./src/system.js?v=2026-07-13-print-v34","./src/signatures.js?v=1","./src/work-permits.js?v=34","./src/pwa.js"];
+  const scripts = ["./src/print/print-manager.js?v=34","./src/app.js?v=2026-07-13-permissions-v38","./src/corporate-documents.js","./src/extensions.js?v=2","./src/system.js?v=2026-07-13-permissions-v38","./src/signatures.js?v=2026-07-13-permissions-v38","./src/work-permits.js?v=2026-07-13-permissions-v38","./src/pwa.js"];
   const loginForm = document.querySelector("#loginForm");
   const authMessage = document.querySelector("#authMessage");
   const setPasswordForm = document.querySelector("#setPasswordForm");
@@ -105,7 +105,7 @@
     document.querySelector("#currentUserName").textContent = profile.full_name || user.email || "Usuario";
     document.querySelector("#currentUserRole").textContent = profile.role;
     const usersButton = document.querySelector("#userManagementButton");
-    usersButton.hidden = !(window.GraviSupabase.can("admin-write") || window.GraviSupabase.canPermission?.("users.invite") || window.GraviSupabase.canPermission?.("users.edit") || window.GraviSupabase.canPermission?.("users.manage_permissions"));
+    usersButton.hidden = !window.GraviSupabase.canAnyPermission?.(["users.view","users.invite","users.edit","users.change_roles","users.manage_permissions","users.deactivate"]);
     await loadModules();
     installMobileNavigation();
     window.dispatchEvent(new CustomEvent("gvc:auth-ready", {detail:{user,profile}}));
@@ -346,17 +346,18 @@
     try {
       const profiles = await window.GraviSupabase.listProfiles();
       loadedProfiles = profiles;
-      const canEditUsers = window.GraviSupabase.can("admin-write") || window.GraviSupabase.canPermission?.("users.edit");
-      const canChangeRoles = window.GraviSupabase.can("admin-write") || window.GraviSupabase.canPermission?.("users.change_roles");
-      const canManagePermissions = window.GraviSupabase.can("admin-write") || window.GraviSupabase.canPermission?.("users.manage_permissions");
-      const canDeactivateUsers = window.GraviSupabase.can("admin-write") || window.GraviSupabase.canPermission?.("users.deactivate");
+      const canEditUsers = window.GraviSupabase.canPermission?.("users.edit");
+      const canChangeRoles = window.GraviSupabase.canPermission?.("users.change_roles");
+      const canManagePermissions = window.GraviSupabase.canPermission?.("users.manage_permissions");
+      const canDeactivateUsers = window.GraviSupabase.canPermission?.("users.deactivate");
+      const canSaveUsers = canEditUsers || canChangeRoles || canManagePermissions || canDeactivateUsers;
       adminList.innerHTML = profiles.length ? profiles.map(profile => `
         <article class="user-admin-row" data-user-row="${profile.user_id}">
-          <div><b>${escapeHtml(profile.full_name || "Sin nombre")}</b><small>${profile.active ? "Usuario activo" : "Acceso suspendido"} · ${hasCustomPermissions(profile) ? "Personalizados" : "Predeterminados del rol"}</small></div>
+          <div><input data-user-full-name value="${escapeHtml(profile.full_name || "")}" aria-label="Nombre completo" ${canEditUsers ? "" : "disabled"}><small>${profile.active ? "Usuario activo" : "Acceso suspendido"} · ${hasCustomPermissions(profile) ? "Personalizados" : "Predeterminados del rol"}</small></div>
           <span>${escapeHtml(profile.email || "Correo no disponible")}</span>
           <select data-user-role ${canChangeRoles ? "" : "disabled"}><option ${profile.role==="Administrador"?"selected":""}>Administrador</option><option ${profile.role==="Supervisor SST"?"selected":""}>Supervisor SST</option><option ${profile.role==="Consulta"?"selected":""}>Consulta</option></select>
           <label><input type="checkbox" data-user-active ${profile.active?"checked":""} ${canDeactivateUsers ? "" : "disabled"}> Activo</label>
-          <div class="user-admin-actions"><button class="secondary" type="button" data-user-permissions ${canManagePermissions ? "" : "disabled"}>Permisos</button><button class="secondary" type="button" data-save-user ${canEditUsers ? "" : "disabled"}>Guardar</button></div>
+          <div class="user-admin-actions"><button class="secondary" type="button" data-user-permissions ${canManagePermissions ? "" : "disabled"}>Permisos</button><button class="secondary" type="button" data-save-user ${canSaveUsers ? "" : "disabled"}>Guardar</button></div>
         </article>`).join("") : '<div class="empty-management">No hay perfiles registrados.</div>';
       adminMessage.textContent = "";
       adminList.querySelectorAll("[data-user-role]").forEach(select => {
@@ -388,10 +389,19 @@
           const profile = profiles.find(item => item.user_id === row.dataset.userRow);
           const role = row.querySelector("[data-user-role]").value;
           const active = row.querySelector("[data-user-active]").checked;
+          const fullName = row.querySelector("[data-user-full-name]").value.trim();
+          const changes = {};
           if (profile?.role === "Administrador" && profile.active && (role !== "Administrador" || !active) && activeAdminCount(profiles) <= 1) throw new Error("No puedes desactivar o degradar al ultimo Administrador activo.");
-          const canManagePermissions = window.GraviSupabase.can("admin-write") || window.GraviSupabase.canPermission?.("users.manage_permissions");
+          const canManagePermissions = window.GraviSupabase.canPermission?.("users.manage_permissions");
           const permissionSettings = canManagePermissions ? (profile?.__permissionDraft || profilePermissionSettings(profile || {})) : null;
-          await window.GraviSupabase.updateProfile(row.dataset.userRow, role, active, permissionSettings);
+          if (fullName !== (profile?.full_name || "")) changes.full_name = fullName;
+          if (role !== profile?.role) changes.role = role;
+          if (active !== Boolean(profile?.active)) changes.active = active;
+          if (permissionSettings && profile?.__permissionDraft) {
+            changes.permissions_mode = permissionSettings.permissions_mode;
+            changes.custom_permissions = permissionSettings.custom_permissions;
+          }
+          await window.GraviSupabase.updateProfile(row.dataset.userRow, changes);
           window.dispatchEvent(new CustomEvent("gvc:user-role-changed", {detail:{userId:row.dataset.userRow,targetRole:role,active}}));
           adminMessage.textContent = "Permisos actualizados.";
           await renderUsers();
@@ -409,7 +419,7 @@
     await renderUsers();
   });
   document.querySelector("#closeUserAdmin").addEventListener("click", () => modal.hidden = true);
-  const canConfigureInvitePermissions = window.GraviSupabase.can("admin-write") || window.GraviSupabase.canPermission?.("users.manage_permissions");
+  const canConfigureInvitePermissions = window.GraviSupabase.canPermission?.("users.manage_permissions");
   inviteForm.insertAdjacentHTML("beforeend", `<button class="secondary" id="configureInvitePermissions" type="button" ${canConfigureInvitePermissions ? "" : "disabled"}>Configurar permisos</button><small id="invitePermissionSummary" class="permission-summary">Predeterminados del rol</small>`);
   inviteForm.elements.role.addEventListener("change", () => {
     invitePermissionSettings = rolePermissionSettings(inviteForm.elements.role.value);

@@ -104,12 +104,7 @@ alter table public.work_permit_history enable row level security;
 
 -- La función consulta permisos personalizados y conserva compatibilidad con roles existentes.
 create or replace function public.has_work_permit_permission(p_key text) returns boolean stable security definer set search_path=public language sql as $$
-  select exists(select 1 from public.perfiles_usuario p where p.user_id=auth.uid() and p.active and (
-    p.role='Administrador' or
-    (p.role='Supervisor SST' and p_key=any(array['permits.view','permits.create','permits.edit','permits.review','permits.authorize','permits.suspend','permits.cancel','permits.close','permits.export'])) or
-    (p.role='Consulta' and p_key='permits.view') or
-    (coalesce(p.permissions_mode,'role-default')='custom' and coalesce((p.custom_permissions->>p_key)::boolean,false))
-  ));
+  select public.has_gravi_permission(p_key);
 $$;
 
 drop policy if exists work_permits_select on public.work_permits;

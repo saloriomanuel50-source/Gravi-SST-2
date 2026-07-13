@@ -1,3 +1,5 @@
+const {CRITICAL_ADMIN_PERMISSIONS,hasPermission,validateCustomPermissions}=require("./permissions-contract");
+
 module.exports = async function handler(request, response) {
   response.setHeader("Cache-Control", "no-store, max-age=0");
   if (request.method !== "POST") return response.status(405).json({error:"Metodo no permitido."});
@@ -41,17 +43,22 @@ module.exports = async function handler(request, response) {
     const callerProfileResponse = await fetch(`${url}/rest/v1/perfiles_usuario?user_id=eq.${encodeURIComponent(caller.id)}&select=role,active,permissions_mode,custom_permissions`, {headers:{apikey:serviceKey,Authorization:`Bearer ${serviceKey}`}});
     const profiles = callerProfileResponse.ok ? await callerProfileResponse.json() : [];
     const callerProfile = profiles[0] || {};
-    const callerCanInvite = callerProfile.role === "Administrador" || (callerProfile.permissions_mode === "custom" && callerProfile.custom_permissions?.["users.invite"] === true);
+    const callerCanInvite = hasPermission(callerProfile,"users.invite");
     if (!callerProfile.active || !callerCanInvite) return response.status(403).json({error:"Tu perfil no permite invitar usuarios."});
 
-    const {email,fullName,role,permissions={}} = request.body || {};
+    const {email,fullName,role:requestedRole,permissions={}} = request.body || {};
     const roles = ["Administrador","Supervisor SST","Consulta"];
-    if (!email || !fullName || !roles.includes(role)) return response.status(400).json({error:"Nombre, correo y rol valido son obligatorios."});
+    if (!email || !fullName || !roles.includes(requestedRole)) return response.status(400).json({error:"Nombre, correo y rol valido son obligatorios."});
+    const canChangeRoles=hasPermission(callerProfile,"users.change_roles"),canManagePermissions=hasPermission(callerProfile,"users.manage_permissions");
+    const role=canChangeRoles?requestedRole:"Consulta";
+    if(role==="Administrador"&&callerProfile.role!=="Administrador")return response.status(403).json({error:"S\u00f3lo un Administrador puede invitar otro Administrador."});
 
-    const permissionsMode = permissions.permissions_mode === "custom" ? "custom" : "role-default";
-    const customPermissions = permissions.custom_permissions && typeof permissions.custom_permissions === "object" && !Array.isArray(permissions.custom_permissions)
-      ? permissions.custom_permissions
-      : {};
+    const permissionsMode = canManagePermissions && permissions.permissions_mode === "custom" ? "custom" : "role-default";
+    let customPermissions={};
+    if(permissionsMode==="custom"){
+      try{customPermissions=validateCustomPermissions(permissions.custom_permissions||{});}catch(error){return response.status(400).json({error:error.message});}
+      if(callerProfile.role!=="Administrador")for(const [key,enabled] of Object.entries(customPermissions))if(enabled&&(!hasPermission(callerProfile,key)||CRITICAL_ADMIN_PERMISSIONS.includes(key)))return response.status(403).json({error:`No puedes conceder ${key}.`});
+    }
 
     const {data:invited,error:inviteError} = await supabase.auth.admin.inviteUserByEmail(email, {
       redirectTo,
