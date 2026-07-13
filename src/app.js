@@ -513,7 +513,7 @@ $("#editButton").onclick = () => {
   else if (currentRecord?.type === "firstAid") { applyFirstAidData(currentRecord); showView("firstAidView"); }
   else if (equipmentConfigs[currentRecord?.type]) { openEquipmentInspection(currentRecord.type,currentRecord); }
   else { applyData(currentRecord); showStep(1); showView("formView"); }
-}; $("#printButton").onclick = () => { window.dispatchEvent(new CustomEvent("gvc:pdf-generated", { detail: { recordId:currentRecord?.id||"", type:currentRecord?.type||"" } })); window.print(); };
+}; $("#printButton").onclick = async () => { window.dispatchEvent(new CustomEvent("gvc:pdf-generated", { detail: { recordId:currentRecord?.id||"", type:currentRecord?.type||"" } })); try { await window.GraviPrint.printCurrentDocument(); } catch (error) { toast(error.message); } };
 $("#downloadData").onclick = () => { const source=window.systemDownloadData||currentRecord;const blob=new Blob([JSON.stringify(source,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);const kind=source?.downloadName||(source?.type === "incident"?"reporte-seguridad":source?.type === "firstAid"?"botiquin":equipmentConfigs[source?.type]?source.type:"extintores");a.download=`${kind}-${source?.date||'registro'}.json`;a.click();URL.revokeObjectURL(a.href); };
 $("#historyButton").onclick = () => showView("historyView"); $("#historyBack").onclick = () => showView("homeView");
 prepareEvidenceInputs();

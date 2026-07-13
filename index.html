@@ -12,7 +12,7 @@
   <meta name="format-detection" content="telephone=no">
   <meta name="description" content="Sistema GRAVI de seguridad, salud, inspecciones y cumplimiento para obra.">
   <title>GRAVI SST</title>
-  <script>window.GRAVI_BUILD_VERSION = "2026-07-10-daily-sync";</script>
+  <script>window.GRAVI_BUILD_VERSION = "2026-07-13-print-v34";</script>
   <link rel="manifest" href="./manifest.json?v=2026-07-10-daily-sync">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/pwa-icon-192.png">
   <link rel="apple-touch-icon" href="./assets/pwa-icon-192.png">
@@ -27,6 +27,7 @@
   <link rel="stylesheet" href="./src/styles/phase5-2.css?v=17">
   <link rel="stylesheet" href="./src/styles/work-permits.css?v=1">
   <link rel="stylesheet" href="./src/styles/signatures.css?v=1">
+  <link rel="stylesheet" href="./src/styles/print-documents.css?v=34" media="print">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
   <!-- Librer&iacute;a para lectura de archivos Excel -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
@@ -287,8 +288,8 @@
     </section>
 
     <section id="reportView" class="view">
-      <div class="report-toolbar"><button class="back" id="editButton" type="button">&larr; Editar</button><div><strong>Reporte listo</strong><small>Revisa la informaci&oacute;n antes de imprimir.</small></div><button class="secondary" id="downloadData" type="button">Descargar datos</button><button class="primary" id="printButton" type="button">Imprimir / Guardar PDF</button></div>
-      <article id="printReport" class="report-sheet"></article>
+      <div class="report-toolbar screen-only" data-print-exclude="true"><button class="back" id="editButton" type="button" data-print-exclude="true">&larr; Editar</button><div><strong>Reporte listo</strong><small>Revisa la informaci&oacute;n antes de imprimir.</small></div><button class="secondary" id="downloadData" type="button" data-print-exclude="true">Descargar datos</button><button class="primary" id="printButton" type="button" data-print-exclude="true">Imprimir / Guardar PDF</button></div>
+      <article id="printReport" class="report-sheet gravi-document"></article>
     </section>
 
     <section id="firstAidView" class="view">
@@ -457,7 +458,7 @@
   <script src="./src/supabase.js?v=2026-07-09-mobile-ux"></script>
   <script src="./src/repositories.js?v=2026-07-07-hotfix-charset"></script>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="./src/bootstrap.js?v=2026-07-10-daily-sync"></script>
+  <script src="./src/bootstrap.js?v=2026-07-13-print-v34"></script>
   <!-- M&oacute;dulo de Formatos Din&aacute;micos -->
   <script src="./src/dynamic-formats.js?v=2026-07-07-hotfix-charset"></script>
   <script src="./src/dynamic-formats-controller.js?v=2026-07-07-hotfix-charset"></script>
