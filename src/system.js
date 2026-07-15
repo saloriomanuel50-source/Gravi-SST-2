@@ -548,12 +548,13 @@ function clearWorkContext55(){activeId="";localStorage.removeItem(ACTIVE_KEY);lo
 function enhanceExecutiveDashboard55(){const grid=q("#developmentsGrid"),kpis=q(".general-kpi-grid",grid);if(!grid||!kpis)return;const view=generalDashboard52(),reports=view.totals.documents+view.totals.incidents+view.totals.accidents;kpis.innerHTML=`${kpiCard52("Desarrollos",view.totals.developments,"Catalogo maestro")}${kpiCard52("Obras",view.totals.works,"Activas y consultables")}${kpiCard52("Trabajadores",view.totals.workers,`${view.totals.present} presentes hoy`)}${kpiCard52("Contratistas",view.totals.contractors,"Activos registrados")}${kpiCard52("Cumplimiento",`${view.totals.compliance}%`,`${view.totals.pending} pendientes normativos`)}${kpiCard52("Incidentes",view.totals.incidents+view.totals.accidents,`${view.totals.accidents} accidentes`)}${kpiCard52("Reportes",reports,`${view.totals.documents} documentos`)}`;if(!q(".executive-quick-panel",grid)){kpis.insertAdjacentHTML("afterend",`<section class="general-panel executive-quick-panel"><div class="panel-heading-inline"><h2>Accesos rapidos</h2><span>Gestion ejecutiva</span></div><div class="executive-quick-actions"><button class="secondary" type="button" data-executive-action="developments">Desarrollos</button><button class="secondary" type="button" data-executive-action="works">Obras</button><button class="secondary" type="button" data-executive-action="administration">Administracion</button><button class="primary" type="button" data-executive-action="report">Reporte general</button></div></section>`);}qa("[data-executive-action]",grid).forEach(button=>button.onclick=()=>{const action=button.dataset.executiveAction;if(action==="developments")renderDevelopments52(false);else if(action==="works")renderAllWorks52();else if(action==="administration")openAdministration52();else if(action==="report")openGeneralReport52();});}
 function renderExecutiveDashboard55(){clearWorkContext55();if(window.GraviExecutiveDashboard?.render){window.GraviExecutiveDashboard.render();return;}renderGeneralDashboard52();enhanceExecutiveDashboard55();}
 window.GraviExecutiveDashboardBridge={
-  showView:()=>{q("#activeWorkButton").hidden=true;q("#developmentForm").hidden=true;setStartActions52("home");displayView("developmentsView");markGlobal52("home");setBreadcrumb52([{label:"Inicio"}]);},
-  exportReport:()=>openGeneralReport52(),
-  openWork:id=>openWorkDashboard55(id),
-  openWorks:()=>renderAllWorks52(),
-  openAlerts:()=>renderAuditLog(),
-  openActivity:()=>renderAuditLog()
+  showView:()=>{q("#activeWorkButton").hidden=true;q("#developmentForm").hidden=true;setStartActions52("home");q("#printGeneralReportButton")&&(q("#printGeneralReportButton").hidden=true);displayView("developmentsView");markGlobal52("home");setBreadcrumb52([{label:"Inicio"}]);},
+  exportReport:()=>window.GraviPrint?.printDocument({element:q(".gravi-executive-dashboard"),title:"reporte-ejecutivo-gravi-sst",orientation:"landscape",documentType:"executiveReport"}).catch(error=>{console.error("Reporte ejecutivo:",error);alert(error.message);}),
+  exportWork:id=>{const previous=activeId;activeId=id;const work=workById(id),stats=complianceStats(id);renderComplianceReport({workId:id,date:today(),complianceSnapshot:{work,entries:stats.entries,stats}});activeId=previous;},
+  openWork:id=>{window.GraviExecutiveDashboard?.deactivate?.();openWorkDashboard55(id);},
+  openWorks:()=>{window.GraviExecutiveDashboard?.deactivate?.();renderAllWorks52();},
+  openAlerts:()=>{window.GraviExecutiveDashboard?.deactivate?.();renderAuditLog();},
+  openActivity:()=>{window.GraviExecutiveDashboard?.deactivate?.();renderAuditLog();}
 };
 function openWorkDashboard55(workId=""){if(workId){activeId=workId;localStorage.setItem(ACTIVE_KEY,workId);}localStorage.setItem(WORK_CONTEXT_KEY,"1");localStorage.setItem(WORK_DASHBOARD_OPEN_KEY55,"1");document.body.classList.add("has-work-context");renderWorkDashboard54();}
 const dashboardRouteBaseSetActive55=setActive;
@@ -585,7 +586,7 @@ const cardActionsBaseRenderDevelopmentWorks53=renderDevelopmentWorks52;
 renderDevelopmentWorks52=function(development){cardActionsBaseRenderDevelopmentWorks53(development);bindWorkCardActions53(q("#developmentWorksGrid"));};
 const cardActionsBaseRenderAllWorks53=renderAllWorks52;
 renderAllWorks52=function(){cardActionsBaseRenderAllWorks53();bindWorkCardActions53(q("#developmentsGrid"));};
-renderDevelopments52=function(home=false){if(home)return renderGeneralDashboard52();renderDevelopmentCatalogWithActions53();};
+renderDevelopments52=function(home=false){if(home)return renderExecutiveDashboard55();window.GraviExecutiveDashboard?.deactivate?.();renderDevelopmentCatalogWithActions53();};
 bindDevelopmentCatalog52=function(){cardActionsBaseBindDevelopmentCatalog53();q("#newDevelopmentButton").onclick=()=>openDevelopmentEditor53();q("#cancelDevelopmentButton").onclick=()=>{const form=q("#developmentForm");form.hidden=true;delete form.dataset.editId;delete form.dataset.previousName;};q("#developmentForm").onsubmit=saveDevelopmentForm53;};
 const locationBasePrepareWorkForm53=prepareWorkForm;
 prepareWorkForm=function(work=null){if(workLocationMap53){workLocationMap53.remove();}workLocationMap53=null;workLocationMarker53=null;locationBasePrepareWorkForm53(work);const mapNode=q("#workLocationMap");if(mapNode)mapNode.hidden=true;bindWorkLocationTools53();};
