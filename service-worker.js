@@ -1,7 +1,7 @@
 "use strict";
 
-const CACHE_NAME = "gravi-sst-v2-shell-v38";
-const DOCUMENT_CACHE_VERSION = "v35";
+const CACHE_NAME = "gravi-sst-v2-shell-v39";
+const DOCUMENT_CACHE_VERSION = "v36";
 const ACTIVE_CACHE_NAME = `${CACHE_NAME}-${DOCUMENT_CACHE_VERSION}`;
 const APP_SHELL = [
   "./",
@@ -16,6 +16,7 @@ const APP_SHELL = [
   "./src/styles/phase4.css?v=1",
   "./src/styles/phase5.css?v=1",
   "./src/styles/phase5-2.css?v=18",
+  "./src/styles/executive-dashboard.css?v=2026-07-15-executive-v39",
   "./src/styles/work-permits.css?v=1",
   "./src/styles/signatures.css?v=1",
   "./src/styles/print-documents.css?v=35",
@@ -23,11 +24,12 @@ const APP_SHELL = [
   "./src/app.js?v=2026-07-13-permissions-v38",
   "./src/supabase.js?v=2026-07-13-permissions-v38",
   "./src/repositories.js?v=2026-07-07-hotfix-charset",
-  "./src/bootstrap.js?v=2026-07-13-permissions-v38",
+  "./src/bootstrap.js?v=2026-07-15-executive-v39",
   "./src/print/print-manager.js?v=34",
   "./src/corporate-documents.js?v=35",
   "./src/extensions.js?v=2026-07-07-hotfix-charset",
-  "./src/system.js?v=2026-07-13-permissions-v38",
+  "./src/system.js?v=2026-07-15-executive-v39",
+  "./src/executive-dashboard.js?v=2026-07-15-executive-v39",
   "./src/work-permits.js?v=2026-07-13-permissions-v38",
   "./src/signatures.js?v=2026-07-13-permissions-v38",
   "./src/dynamic-formats.js?v=2026-07-07-hotfix-charset",
