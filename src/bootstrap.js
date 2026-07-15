@@ -1,7 +1,7 @@
 (async function startGraviApplication(){
   "use strict";
 
-  const scripts = ["./src/print/print-manager.js?v=34","./src/app.js?v=2026-07-13-permissions-v38","./src/corporate-documents.js","./src/extensions.js?v=2","./src/system.js?v=2026-07-13-permissions-v38","./src/signatures.js?v=2026-07-13-permissions-v38","./src/work-permits.js?v=2026-07-13-permissions-v38","./src/pwa.js"];
+  const scripts = ["./src/print/print-manager.js?v=34","./src/app.js?v=2026-07-13-permissions-v38","./src/corporate-documents.js","./src/extensions.js?v=2","./src/system.js?v=2026-07-13-permissions-v38","./src/executive-dashboard.js?v=1","./src/signatures.js?v=2026-07-13-permissions-v38","./src/work-permits.js?v=2026-07-13-permissions-v38","./src/pwa.js"];
   const loginForm = document.querySelector("#loginForm");
   const authMessage = document.querySelector("#authMessage");
   const setPasswordForm = document.querySelector("#setPasswordForm");
