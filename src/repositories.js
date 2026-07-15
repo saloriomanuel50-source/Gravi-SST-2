@@ -97,6 +97,8 @@
       async softDelete(id) { return this.update(id,{deleted_at:new Date().toISOString(),status:"cancelled"}); },
       listByWork(workId) { return this.list({workId}); },
       listByRecord(recordId) { return clone(rows().filter(item=>!item.deleted_at&&(item.control_id===recordId||item.record_id===recordId))); },
+      listBySource(sourceModule,sourceEntryId) { return clone(rows().filter(item=>!item.deleted_at&&(item.source_module||item.sourceModule)===sourceModule&&(item.source_entry_id||item.sourceEntryId)===sourceEntryId)); },
+      cache(items=[]) { for(const item of items)saveLocal(item);return clone(items); },
       listPending() { return clone(rows().filter(item=>["pending","error"].includes(item.sync_status))); },
       async syncPending() { if(!global.navigator?.onLine||!global.GraviSupabase?.isAuthenticated?.()||!global.GraviSupabase?.[remoteName]?.create)return{synced:0,pending:this.listPending().length};let synced=0;for(const item of this.listPending()){try{const remote=await global.GraviSupabase[remoteName].create(item);saveLocal({...item,...remote,sync_status:"synced",sync_error:""});synced++;}catch(error){saveLocal({...item,sync_status:"error",sync_error:error.message});}}return{synced,pending:this.listPending().length}; },
       async refreshRemote(workId="") { if(!global.navigator?.onLine||!global.GraviSupabase?.isAuthenticated?.()||!global.GraviSupabase?.[remoteName]?.list)return this.list({workId});try{const remote=await global.GraviSupabase[remoteName].list(workId);remote.forEach(saveLocal);return this.list({workId});}catch(error){console.error(`[GraviRepositories:${remoteName}:list]`,error);return this.list({workId});} }

@@ -92,7 +92,7 @@ const expectedIndexReferences = [
   "./src/styles/phase4.css?v=1",
   "./src/styles/phase5.css?v=1",
   "./src/styles/phase5-2.css?v=18",
-  "./src/styles/print-documents.css?v=34",
+  "./src/styles/print-documents.css?v=35",
   "./src/supabase.js",
   "./src/bootstrap.js",
   "./assets/gravi-sst-logo-dark.png",
@@ -103,7 +103,7 @@ for (const reference of expectedIndexReferences) {
 }
 
 const bootstrap = read("src/bootstrap.js");
-for (const reference of ["./src/print/print-manager.js?v=34", "./src/app.js?v=2026-07-13-permissions-v38", "./src/corporate-documents.js", "./src/extensions.js?v=2", "./src/executive-dashboard.js?v=2026-07-15-executive-init-v40", "./src/system.js?v=2026-07-15-capture-evidence-v41", "./src/offline-evidence-queue.js?v=2026-07-15-capture-evidence-v41", "./src/evidence-manager.js?v=2026-07-15-capture-evidence-v41", "./src/legacy-capture-adapter.js?v=2026-07-15-capture-evidence-v41", "./src/preventive-observations.js?v=2026-07-15-capture-evidence-v41", "./src/evidence-gallery.js?v=2026-07-15-capture-evidence-v41", "./src/capture-center.js?v=2026-07-15-capture-evidence-v41", "./src/pwa.js"]) {
+for (const reference of ["./src/print/print-manager.js?v=35", "./src/app.js?v=2026-07-13-permissions-v38", "./src/corporate-documents.js", "./src/extensions.js?v=2", "./src/executive-dashboard.js?v=2026-07-15-executive-init-v40", "./src/system.js?v=2026-07-15-capture-evidence-v42", "./src/offline-evidence-queue.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-manager.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-sync-coordinator.js?v=2026-07-15-capture-evidence-v42", "./src/legacy-capture-adapter.js?v=2026-07-15-capture-evidence-v42", "./src/preventive-observations.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-gallery.js?v=2026-07-15-capture-evidence-v42", "./src/work-permits.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-relations.js?v=2026-07-15-capture-evidence-v42", "./src/capture-center.js?v=2026-07-15-capture-evidence-v42", "./src/pwa.js"]) {
   if (!bootstrap.includes(reference)) fail(`bootstrap.js no carga ${reference}`);
 }
 if (bootstrap.indexOf("./src/executive-dashboard.js") > bootstrap.indexOf("./src/system.js")) fail("bootstrap.js debe cargar executive-dashboard.js antes de system.js");
@@ -121,7 +121,7 @@ const evidenceManager = read("src/evidence-manager.js");
 for (const api of ["selectFiles","prepareImages","renderPreview","removePreparedFile","saveOffline","uploadPending","getSignedUrl","openViewer","listByRecord","retry","getAvailableCount"]) if (!evidenceManager.includes(api)) fail(`evidence-manager.js no expone ${api}`);
 
 const serviceWorker = read("service-worker.js");
-for (const reference of ["./src/app.js?v=2026-07-13-permissions-v38", "./src/supabase.js?v=2026-07-15-capture-evidence-v41", "./src/repositories.js?v=2026-07-15-capture-evidence-v41", "./src/bootstrap.js?v=2026-07-15-capture-evidence-v41", "./src/print/print-manager.js?v=34", "./src/system.js?v=2026-07-15-capture-evidence-v41", "./src/executive-dashboard.js?v=2026-07-15-executive-init-v40", "./src/offline-evidence-queue.js?v=2026-07-15-capture-evidence-v41", "./src/evidence-manager.js?v=2026-07-15-capture-evidence-v41", "./src/legacy-capture-adapter.js?v=2026-07-15-capture-evidence-v41", "./src/preventive-observations.js?v=2026-07-15-capture-evidence-v41", "./src/evidence-gallery.js?v=2026-07-15-capture-evidence-v41", "./src/capture-center.js?v=2026-07-15-capture-evidence-v41", "./src/styles/capture-center.css?v=2026-07-15-capture-v41", "./src/styles/evidence-gallery.css?v=2026-07-15-capture-v41", "./src/styles/executive-dashboard.css?v=2026-07-15-executive-init-v40", "./src/styles/print-documents.css?v=34", "./src/styles/phase5-2.css?v=18", "./assets/gravi-sst-logo-dark.png", "./assets/gravi-sst-login-panel.png", "./assets/gravi-sst-splash.png", "./assets/pwa-icon-192.png"]) {
+for (const reference of ["./src/app.js?v=2026-07-13-permissions-v38", "./src/supabase.js?v=2026-07-15-capture-evidence-v42", "./src/repositories.js?v=2026-07-15-capture-evidence-v42", "./src/bootstrap.js?v=2026-07-15-capture-evidence-v42", "./src/print/print-manager.js?v=35", "./src/system.js?v=2026-07-15-capture-evidence-v42", "./src/executive-dashboard.js?v=2026-07-15-executive-init-v40", "./src/offline-evidence-queue.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-manager.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-sync-coordinator.js?v=2026-07-15-capture-evidence-v42", "./src/legacy-capture-adapter.js?v=2026-07-15-capture-evidence-v42", "./src/preventive-observations.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-gallery.js?v=2026-07-15-capture-evidence-v42", "./src/work-permits.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-relations.js?v=2026-07-15-capture-evidence-v42", "./src/capture-center.js?v=2026-07-15-capture-evidence-v42", "./src/styles/capture-center.css?v=2026-07-15-capture-v42", "./src/styles/evidence-gallery.css?v=2026-07-15-capture-v42", "./src/styles/executive-dashboard.css?v=2026-07-15-executive-init-v40", "./src/styles/print-documents.css?v=35", "./src/styles/phase5-2.css?v=18", "./assets/gravi-sst-logo-dark.png", "./assets/gravi-sst-login-panel.png", "./assets/gravi-sst-splash.png", "./assets/pwa-icon-192.png"]) {
   if (!serviceWorker.includes(reference)) fail(`service-worker.js no precachea ${reference}`);
 }
 
@@ -133,10 +133,10 @@ for (const rule of [".auth-screen [hidden]", "body.auth-login #setPasswordForm",
 const inviteApi = read("api/invite-user.js");
 if (!inviteApi.includes("profileResponse.ok")) fail("api/invite-user.js no valida profileResponse.ok");
 
-for (const reference of ["window.GRAVI_BUILD_VERSION = \"2026-07-15-capture-evidence-v41\"", "./src/styles/phase5-2.css?v=18", "./src/styles/executive-dashboard.css?v=2026-07-15-executive-init-v40", "./src/styles/capture-center.css?v=2026-07-15-capture-v41", "./src/styles/evidence-gallery.css?v=2026-07-15-capture-v41", "./src/bootstrap.js?v=2026-07-15-capture-evidence-v41", "./src/supabase.js?v=2026-07-15-capture-evidence-v41", "./src/repositories.js?v=2026-07-15-capture-evidence-v41"]) {
+for (const reference of ["window.GRAVI_BUILD_VERSION = \"2026-07-15-capture-evidence-v42\"", "./src/styles/phase5-2.css?v=18", "./src/styles/executive-dashboard.css?v=2026-07-15-executive-init-v40", "./src/styles/capture-center.css?v=2026-07-15-capture-v42", "./src/styles/evidence-gallery.css?v=2026-07-15-capture-v42", "./src/bootstrap.js?v=2026-07-15-capture-evidence-v42", "./src/supabase.js?v=2026-07-15-capture-evidence-v42", "./src/repositories.js?v=2026-07-15-capture-evidence-v42"]) {
   if (!index.includes(reference)) fail(`index.html no usa la version coordinada ${reference}`);
 }
-if (!serviceWorker.includes('const CACHE_NAME = "gravi-sst-v2-shell-v41"')) fail("service-worker.js no usa cache v41");
+if (!serviceWorker.includes('const CACHE_NAME = "gravi-sst-v2-shell-v42"')) fail("service-worker.js no usa cache v42");
 
 const releaseV38 = read("database/permissions_release_v38.sql");
 const verifyV38 = read("database/verify_permissions_v38.sql");

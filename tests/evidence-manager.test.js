@@ -4,7 +4,7 @@ const root=path.resolve(__dirname,".."),source=fs.readFileSync(path.join(root,"s
 const listeners={},document={createElement:null,querySelector:()=>null,body:{append(){},classList:{add(){},remove(){}}}},window={crypto:webcrypto,navigator:{onLine:false},addEventListener:(name,fn)=>{listeners[name]=fn},GraviLegacyCaptureAdapter:{hasAvailablePhoto:item=>/^data:image\/(jpeg|png|webp);base64,/i.test(item?.photo||"")}};
 const sandbox={window,document,navigator:window.navigator,crypto:webcrypto,Blob,URL,console,fetch};vm.createContext(sandbox);vm.runInContext(queueSource,sandbox);vm.runInContext(source,sandbox);
 const manager=window.GraviEvidenceManager;
-for(const name of ["selectFiles","prepareImages","renderPreview","removePreparedFile","saveOffline","uploadPending","getSignedUrl","openViewer","listByRecord","retry","getAvailableCount"])assert.equal(typeof manager[name],"function",`${name} ausente`);
+for(const name of ["selectFiles","prepareImages","renderPreview","removePreparedFile","releasePreparedFiles","saveOffline","uploadPending","getSignedUrl","getSignedUrlSafe","openViewer","listByRecord","listBySource","retry","getAvailableCount"])assert.equal(typeof manager[name],"function",`${name} ausente`);
 const image=(bytes,type,name)=>{const blob=new Blob([Uint8Array.from(bytes)],{type});Object.defineProperty(blob,"name",{value:name});return blob;};
 (async()=>{
   const jpeg=image([0xff,0xd8,0xff,0xe0,0,0,0,0,0,0,0,0],"image/jpeg","foto.jpg"),png=image([0x89,0x50,0x4e,0x47,0,0,0,0,0,0,0,0],"image/png","foto.png"),bad=image([1,2,3,4,5,6,7,8,9,10,11,12],"image/jpeg","falsa.jpg");

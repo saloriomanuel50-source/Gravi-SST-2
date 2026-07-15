@@ -5,6 +5,9 @@ begin;
 alter table public.preventive_controls add column if not exists immediate_action text not null default '';
 alter table public.preventive_controls add column if not exists work_suspended boolean not null default false;
 alter table public.preventive_controls add column if not exists area_secured boolean not null default false;
+alter table public.preventive_controls add column if not exists responsible_name text not null default '';
+alter table public.preventive_controls add column if not exists notes text not null default '';
+alter table public.preventive_controls add column if not exists captured_at timestamptz;
 alter table public.preventive_controls add column if not exists closed_at timestamptz;
 alter table public.preventive_controls add column if not exists closed_by uuid;
 alter table public.preventive_controls add column if not exists validated_at timestamptz;
@@ -74,9 +77,40 @@ create policy preventive_control_evidence_insert on public.preventive_control_ev
   )
 );
 drop policy if exists preventive_control_evidence_update on public.preventive_control_evidence;
-create policy preventive_control_evidence_update on public.preventive_control_evidence for update to authenticated using (
-  public.is_gravi_admin() or public.has_gravi_permission('evidence.delete') or (created_by=auth.uid() and public.has_gravi_permission('evidence.upload') and deleted_at is null)
-) with check (public.is_gravi_admin() or public.has_gravi_permission('evidence.delete') or (created_by=auth.uid() and public.has_gravi_permission('evidence.upload') and deleted_at is null));
+drop policy if exists preventive_control_evidence_update_metadata on public.preventive_control_evidence;
+drop policy if exists preventive_control_evidence_soft_delete on public.preventive_control_evidence;
+create policy preventive_control_evidence_update_metadata on public.preventive_control_evidence
+for update to authenticated using (
+  (public.is_gravi_admin() or (created_by=auth.uid() and public.has_gravi_permission('evidence.upload') and deleted_at is null))
+  and exists (
+    select 1 from public.preventive_controls c where c.id=control_id and (
+      public.is_gravi_admin() or exists(select 1 from public.work_user_assignments a where a.work_id=c.work_id and a.user_id=auth.uid() and a.active)
+    )
+  )
+) with check (
+  (public.is_gravi_admin() or (created_by=auth.uid() and public.has_gravi_permission('evidence.upload') and deleted_at is null))
+  and exists (
+    select 1 from public.preventive_controls c where c.id=control_id and (
+      public.is_gravi_admin() or exists(select 1 from public.work_user_assignments a where a.work_id=c.work_id and a.user_id=auth.uid() and a.active)
+    )
+  )
+);
+create policy preventive_control_evidence_soft_delete on public.preventive_control_evidence
+for update to authenticated using (
+  (public.is_gravi_admin() or public.has_gravi_permission('evidence.delete'))
+  and exists (
+    select 1 from public.preventive_controls c where c.id=control_id and (
+      public.is_gravi_admin() or exists(select 1 from public.work_user_assignments a where a.work_id=c.work_id and a.user_id=auth.uid() and a.active)
+    )
+  )
+) with check (
+  (public.is_gravi_admin() or public.has_gravi_permission('evidence.delete'))
+  and exists (
+    select 1 from public.preventive_controls c where c.id=control_id and (
+      public.is_gravi_admin() or exists(select 1 from public.work_user_assignments a where a.work_id=c.work_id and a.user_id=auth.uid() and a.active)
+    )
+  )
+);
 
 create table if not exists public.work_evidence (
   id uuid primary key default gen_random_uuid(), client_uuid text not null unique,
@@ -99,8 +133,60 @@ create policy work_evidence_insert on public.work_evidence for insert to authent
   public.has_gravi_permission('evidence.upload') and created_by=auth.uid() and (public.is_gravi_admin() or exists(select 1 from public.work_user_assignments a where a.work_id=work_evidence.work_id and a.user_id=auth.uid() and a.active))
 );
 drop policy if exists work_evidence_update on public.work_evidence;
-create policy work_evidence_update on public.work_evidence for update to authenticated using (
-  public.is_gravi_admin() or public.has_gravi_permission('evidence.delete') or (created_by=auth.uid() and public.has_gravi_permission('evidence.upload') and deleted_at is null)
-) with check (public.is_gravi_admin() or public.has_gravi_permission('evidence.delete') or (created_by=auth.uid() and public.has_gravi_permission('evidence.upload') and deleted_at is null));
+drop policy if exists work_evidence_update_metadata on public.work_evidence;
+drop policy if exists work_evidence_soft_delete on public.work_evidence;
+create policy work_evidence_update_metadata on public.work_evidence
+for update to authenticated using (
+  (public.is_gravi_admin() or (created_by=auth.uid() and public.has_gravi_permission('evidence.upload') and deleted_at is null))
+  and (public.is_gravi_admin() or exists(select 1 from public.work_user_assignments a where a.work_id=work_evidence.work_id and a.user_id=auth.uid() and a.active))
+) with check (
+  (public.is_gravi_admin() or (created_by=auth.uid() and public.has_gravi_permission('evidence.upload') and deleted_at is null))
+  and (public.is_gravi_admin() or exists(select 1 from public.work_user_assignments a where a.work_id=work_evidence.work_id and a.user_id=auth.uid() and a.active))
+);
+create policy work_evidence_soft_delete on public.work_evidence
+for update to authenticated using (
+  (public.is_gravi_admin() or public.has_gravi_permission('evidence.delete'))
+  and (public.is_gravi_admin() or exists(select 1 from public.work_user_assignments a where a.work_id=work_evidence.work_id and a.user_id=auth.uid() and a.active))
+) with check (
+  (public.is_gravi_admin() or public.has_gravi_permission('evidence.delete'))
+  and (public.is_gravi_admin() or exists(select 1 from public.work_user_assignments a where a.work_id=work_evidence.work_id and a.user_id=auth.uid() and a.active))
+);
+
+-- Los identificadores de pertenencia y las rutas confirmadas son inmutables. La
+-- baja logica solo puede cambiar deleted_at; este trigger tambien evita mover una
+-- evidencia entre obras/controles aun si una politica futura se hace mas amplia.
+create or replace function public.enforce_gravi_evidence_immutability()
+returns trigger language plpgsql security invoker set search_path=pg_catalog,public as $$
+begin
+  if new.deleted_at is distinct from old.deleted_at then
+    if not public.is_gravi_admin() and not public.has_gravi_permission('evidence.delete') then
+      raise exception 'Only evidence.delete may change deleted_at';
+    end if;
+  elsif not public.is_gravi_admin() and not (
+    old.created_by=auth.uid() and public.has_gravi_permission('evidence.upload') and old.deleted_at is null
+  ) then
+    raise exception 'Only the owner with evidence.upload may update evidence metadata';
+  end if;
+  if new.id is distinct from old.id
+     or new.client_uuid is distinct from old.client_uuid
+     or new.storage_path is distinct from old.storage_path
+     or new.created_by is distinct from old.created_by then
+    raise exception 'Evidence identity and storage fields are immutable';
+  end if;
+  if tg_table_name='preventive_control_evidence' and new.control_id is distinct from old.control_id then
+    raise exception 'Evidence cannot be moved to another preventive control';
+  end if;
+  if tg_table_name='work_evidence' and new.work_id is distinct from old.work_id then
+    raise exception 'Evidence cannot be moved to another work';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists preventive_control_evidence_immutable on public.preventive_control_evidence;
+create trigger preventive_control_evidence_immutable before update on public.preventive_control_evidence
+for each row execute function public.enforce_gravi_evidence_immutability();
+drop trigger if exists work_evidence_immutable on public.work_evidence;
+create trigger work_evidence_immutable before update on public.work_evidence
+for each row execute function public.enforce_gravi_evidence_immutability();
 
 commit;
