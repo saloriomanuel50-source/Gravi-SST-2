@@ -1,7 +1,7 @@
 (async function startGraviApplication(){
   "use strict";
 
-  const scripts = ["./src/print/print-manager.js?v=34","./src/app.js?v=2026-07-13-permissions-v38","./src/corporate-documents.js","./src/extensions.js?v=2","./src/system.js?v=2026-07-15-executive-v39","./src/executive-dashboard.js?v=2026-07-15-executive-v39","./src/signatures.js?v=2026-07-13-permissions-v38","./src/work-permits.js?v=2026-07-13-permissions-v38","./src/pwa.js"];
+  const scripts = ["./src/print/print-manager.js?v=34","./src/app.js?v=2026-07-13-permissions-v38","./src/corporate-documents.js","./src/extensions.js?v=2","./src/executive-dashboard.js?v=2026-07-15-executive-init-v40","./src/system.js?v=2026-07-15-executive-init-v40","./src/signatures.js?v=2026-07-13-permissions-v38","./src/work-permits.js?v=2026-07-13-permissions-v38","./src/pwa.js"];
   const loginForm = document.querySelector("#loginForm");
   const authMessage = document.querySelector("#authMessage");
   const setPasswordForm = document.querySelector("#setPasswordForm");
@@ -100,14 +100,21 @@
   async function enterApplication() {
     const profile = window.GraviSupabase.getProfile();
     const user = window.GraviSupabase.getUser();
-    document.body.classList.remove("auth-locked","auth-loading","auth-login","app-loading","role-administrador","role-supervisor-sst","role-consulta");
+    document.body.classList.remove("auth-locked","auth-loading","auth-login","role-administrador","role-supervisor-sst","role-consulta");
     document.body.classList.add(roleClass(profile.role));
     document.querySelector("#currentUserName").textContent = profile.full_name || user.email || "Usuario";
     document.querySelector("#currentUserRole").textContent = profile.role;
     const usersButton = document.querySelector("#userManagementButton");
     usersButton.hidden = !window.GraviSupabase.canAnyPermission?.(["users.view","users.invite","users.edit","users.change_roles","users.manage_permissions","users.deactivate"]);
     await loadModules();
+    window.GraviAppState = window.GraviAppState || {};
+    window.GraviAppState.repositoriesReady = true;
+    if (!document.body.classList.contains("has-work-context")) {
+      if (!window.GraviExecutiveDashboard?.mount) throw new Error("El dashboard ejecutivo no está disponible después de cargar los módulos.");
+      await window.GraviExecutiveDashboard.mount({reason:"initial-route"});
+    }
     installMobileNavigation();
+    document.body.classList.remove("app-loading");
     window.dispatchEvent(new CustomEvent("gvc:auth-ready", {detail:{user,profile}}));
   }
 
