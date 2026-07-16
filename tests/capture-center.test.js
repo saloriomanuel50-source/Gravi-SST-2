@@ -1,0 +1,26 @@
+"use strict";
+const assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path"),vm=require("node:vm");
+const root=path.resolve(__dirname,"..");
+const read=file=>fs.readFileSync(path.join(root,file),"utf8");
+const capture=read("src/capture-center.js"),system=read("src/system.js"),preventive=read("src/preventive-observations.js"),gallery=read("src/evidence-gallery.js"),bootstrap=read("src/bootstrap.js");
+const window={GraviPreventiveObservations:{openForm(){}},GraviSystemContext:{openSafetyEvent(){},openInspection(){},openWorkPermit(){},openVisitor(){}},GraviWorkPermits:{openForm(){}},GraviEvidenceGallery:{openQuickEvidence(){}},GraviSupabase:{canPermission:()=>true}};
+vm.runInNewContext(capture,{window,document:{querySelector:()=>null,createElement:()=>({}),body:{append(){},classList:{add(){},remove(){}}}},console});
+const routes=window.GraviCaptureCenter.routes,keys=Object.keys(routes);
+assert.deepEqual(keys,["preventiveObservation","safetyEvent","inspection","permitAts","visitor","quickEvidence"]);
+assert.equal(new Set(keys).size,6);assert.equal(keys.length,6);
+for(const [key,route] of Object.entries(routes)){assert.equal(typeof route.action,"function",`${key} sin acción`);assert.equal(typeof route.available,"function",`${key} sin disponibilidad`);assert.ok(route.label&&route.description&&route.permission);}
+assert.equal((system.match(/handleCaptureOption53\s*=\s*function/g)||[]).length,0,"Existe una reasignación posterior del controlador");
+assert.equal((system.match(/function handleCaptureOption53\(/g)||[]).length,1,"Debe existir un solo wrapper histórico");
+assert.ok(!system.includes("quickObservationPhoto"));assert.ok(!system.includes("saveQuickObservation53"));assert.ok(!system.includes("gvc-preventive-controls-v1:"));
+assert.ok(preventive.includes('unsafe_condition:"Condición insegura"'));assert.ok(preventive.includes('unsafe_act:"Acto inseguro"'));
+assert.ok(capture.includes("openSafetyEvent"));assert.ok(!capture.includes("openQuickObservation53"));
+assert.ok(gallery.includes('name="files" type="file" accept="image/*" multiple'));
+assert.ok(gallery.indexOf('name="destination"')<gallery.indexOf('name="files"'));
+assert.ok(capture.includes("openVisitor"));assert.ok(capture.includes("GraviWorkPermits?.openForm"));
+assert.ok(!capture.includes("Próximamente")&&!capture.includes("Proximamente"));
+for(const api of ["GraviCaptureCenter","GraviPreventiveObservations","GraviEvidenceGallery","GraviSystemContext"])assert.ok(`${capture}\n${preventive}\n${gallery}\n${system}`.includes(api),`${api} ausente`);
+const ordered=["offline-evidence-queue.js","evidence-manager.js","legacy-capture-adapter.js","preventive-observations.js","evidence-gallery.js","capture-center.js"].map(file=>bootstrap.indexOf(file));
+assert.ok(ordered.every(index=>index>=0)&&ordered.every((index,i)=>i===0||index>ordered[i-1]),"Orden de módulos no determinista");
+assert.ok(preventive.indexOf("repo().create(record)")<preventive.indexOf("evidence().saveOffline"),"La evidencia se intenta antes del registro principal");
+assert.ok(!preventive.includes("openCaptureCenter53()"),"Guardar no debe regresar al Centro de Captura");
+console.log("20/20 rutas, clasificación, compatibilidad y APIs del Centro de Captura verificadas.");
