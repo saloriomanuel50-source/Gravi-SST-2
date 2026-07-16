@@ -16,6 +16,7 @@ set search_path = pg_catalog, public
 as $$
 declare
   v_payload jsonb;
+  v_patch jsonb;
   v_entry jsonb;
   v_summary jsonb;
   v_criteria jsonb;
@@ -88,8 +89,21 @@ begin
     v_payload := jsonb_set(v_payload, '{complianceAudit}', v_audit, true);
   end if;
 
+  -- El guard V38 debe evaluar únicamente el dominio autorizado por compliance.edit.
+  -- El trigger fusionará este parche con old.payload y conservará los demás dominios.
+  v_patch := jsonb_build_object(
+    'compliance',
+    coalesce(v_payload->'compliance', '{}'::jsonb)
+  );
+  if p_audit is not null then
+    v_patch := v_patch || jsonb_build_object(
+      'complianceAudit',
+      coalesce(v_payload->'complianceAudit', '[]'::jsonb)
+    );
+  end if;
+
   update public.cumplimiento_estado
-  set payload = v_payload, updated_at = pg_catalog.now()
+  set payload = v_patch, updated_at = pg_catalog.now()
   where id = 'global';
 
   return v_payload;

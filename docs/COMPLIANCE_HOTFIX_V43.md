@@ -19,6 +19,12 @@ No rediseña pantallas, no cambia el catálogo ni los textos de criterios, no no
 
 El cliente espera el RPC antes de mostrar éxito. Si el RPC todavía no está instalado (404, PGRST202 o función no encontrada), emite una advertencia visible en consola y usa un `upsert` global verificado con `return=representation`. Si no hay conexión, deja el mismo `upsert` en la cola offline y muestra estado pendiente. Errores RLS/permisos se lanzan y provocan rollback; no entran a la cola.
 
+## Compatibilidad con el guard V38
+
+El RPC calcula el payload completo mientras mantiene bloqueada la fila `global`, pero el `UPDATE` envía solamente un parche con `compliance` y, cuando corresponde, `complianceAudit`. El trigger `gravi_v38_compliance_guard` fusiona ese parche mediante `old.payload || new.payload`, por lo que conserva `complianceMatrix`, historiales y los demás dominios existentes.
+
+Así, un Supervisor SST puede editar criterios usando `compliance.edit` sin recibir autorización para modificar `complianceMatrix`. V43 no amplía permisos: la edición de la matriz normativa continúa reservada a `compliance.nom_matrix`.
+
 ## Evidencia y almacenamiento local
 
 La carga de evidencia nueva queda temporalmente deshabilitada en los formularios de criterio y resumen NOM, con aviso explícito. V43 no crea Base64 nuevo. `compactComplianceAuditV43()` elimina solamente copias Base64 de `complianceAudit[].evidence`, conserva conteos y metadatos, limita el historial a 500 y nunca toca `item.evidence`. Ante cuota llena se compacta y se reintenta una vez; un segundo fallo cancela y revierte.
@@ -34,9 +40,9 @@ No ejecutar automáticamente desde el navegador ni usar `service_role`.
    ```
 
 2. En Supabase SQL Editor, ejecutar exactamente el archivo `database/compliance_hotfix_v43.sql` completo.
-3. En Supabase SQL Editor, ejecutar exactamente `database/verify_compliance_hotfix_v43.sql`; las 15 filas deben ser `PASS`.
+3. En Supabase SQL Editor, ejecutar exactamente `database/verify_compliance_hotfix_v43.sql`; las 20 filas deben ser `PASS`.
 4. Desplegar el código de la rama/commit aprobado por el proceso habitual.
-5. Limpiar caché/datos del service worker o recargar hasta activar `gravi-sst-v2-shell-v43-v38`.
+5. Limpiar caché/datos del service worker o recargar hasta activar `gravi-sst-v2-shell-v43`.
 6. Ejecutar la prueba manual con Melina usando un perfil Supervisor SST.
 
 ## Prueba manual de aceptación

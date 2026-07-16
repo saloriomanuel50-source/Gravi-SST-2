@@ -5,7 +5,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 const root=path.resolve(__dirname,"..");
 const read=file=>fs.readFileSync(path.join(root,file),"utf8");
-const system=read("src/system.js"),supabase=read("src/supabase.js"),sql=read("database/compliance_hotfix_v43.sql");
+const system=read("src/system.js"),supabase=read("src/supabase.js"),sql=read("database/compliance_hotfix_v43.sql"),verifier=read("database/verify_compliance_hotfix_v43.sql"),permissions=read("database/permissions_release_v38.sql");
 
 function extractBetween(source,startMarker,endMarker){const start=source.indexOf(startMarker),end=source.indexOf(endMarker,start);assert.notEqual(start,-1,`${startMarker} no existe`);assert.notEqual(end,-1,`${endMarker} no existe`);return source.slice(start,end).trim();}
 const calculateSource=extractBetween(system,"function calculateOperationalEntryStats(","function applyCriterionReviewStateV43(");
@@ -44,4 +44,24 @@ assert.match(saveCriterion,/finally\{if\(form\.isConnected\).*delete form\.datas
 
 for(const fragment of ["gravi_save_compliance_entry_v43","for update","has_gravi_permission('compliance.edit')","p_work_id","p_nom_code","criterion->>'id'","limit 500"]){assert.ok(sql.toLowerCase().includes(fragment.toLowerCase()),`SQL sin ${fragment}`);}
 
-console.log("PASS compliance-hotfix: cálculo, tres actualizaciones, persistencia cliente y SQL V43 verificados.");
+const fallbackSource=extractBetween(system,"function complianceFallbackPayloadV43(","function persistComplianceLocalV43(");
+const fallback=new Function("data",`${fallbackSource}\nreturn complianceFallbackPayloadV43();`)({compliance:{obra:{}},complianceAudit:[{id:"a-1"}],complianceMatrix:{protected:true}});
+assert.deepEqual(Object.keys(fallback).sort(),["compliance","complianceAudit"]);
+assert.deepEqual(fallback.compliance,{obra:{}});assert.deepEqual(fallback.complianceAudit,[{id:"a-1"}]);assert.ok(!Object.hasOwn(fallback,"complianceMatrix"));
+
+assert.doesNotMatch(sql,/\bset\s+payload\s*=\s*v_payload\b/i);
+assert.match(sql,/\bv_patch\s+jsonb\s*;/i);
+const patchStart=sql.indexOf("v_patch := jsonb_build_object("),patchEnd=sql.indexOf("update public.cumplimiento_estado",patchStart);
+assert.ok(patchStart>0&&patchEnd>patchStart,"No se encontró la construcción delimitada de v_patch");
+const patchConstruction=sql.slice(patchStart,patchEnd);
+assert.match(patchConstruction,/v_patch\s*:=\s*jsonb_build_object\s*\(\s*'compliance'/i);
+assert.doesNotMatch(patchConstruction,/complianceMatrix/i);
+assert.match(sql,/return\s+v_payload\s*;/i);
+assert.doesNotMatch(sql,/(drop|alter|disable)\s+trigger\s+gravi_v38_compliance_guard/i);
+
+const supervisorContract=extractBetween(permissions,"when p_role='Supervisor SST'","when p_role='Consulta'");
+assert.match(supervisorContract,/'compliance\.edit'/);assert.doesNotMatch(supervisorContract,/'compliance\.nom_matrix'/);
+assert.equal((verifier.match(/\('(?:0[1-9]|1[0-9]|20)\s/g)||[]).length,20);
+for(const number of ["16","17","18","19","20"]){assert.match(verifier,new RegExp(`\\('${number}\\s`));}
+
+console.log("PASS compliance-hotfix: cálculo, tres actualizaciones, fallback supervisor-safe y 20 verificaciones SQL V43 validadas.");
