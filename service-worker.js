@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_NAME = "gravi-sst-v2-shell-v42";
+const CACHE_NAME = "gravi-sst-v2-shell-v43";
 const DOCUMENT_CACHE_VERSION = "v38";
 const ACTIVE_CACHE_NAME = `${CACHE_NAME}-${DOCUMENT_CACHE_VERSION}`;
 const APP_SHELL = [
@@ -23,13 +23,13 @@ const APP_SHELL = [
   "./src/styles/signatures.css?v=1",
   "./src/styles/print-documents.css?v=35",
   "./src/app.js?v=2026-07-13-permissions-v38",
-  "./src/supabase.js?v=2026-07-15-capture-evidence-v42",
+  "./src/supabase.js?v=2026-07-16-compliance-hotfix-v43",
   "./src/repositories.js?v=2026-07-15-capture-evidence-v42",
-  "./src/bootstrap.js?v=2026-07-15-capture-evidence-v42",
+  "./src/bootstrap.js?v=2026-07-16-compliance-hotfix-v43",
   "./src/print/print-manager.js?v=35",
   "./src/corporate-documents.js?v=35",
   "./src/extensions.js?v=2026-07-07-hotfix-charset",
-  "./src/system.js?v=2026-07-15-capture-evidence-v42",
+  "./src/system.js?v=2026-07-16-compliance-hotfix-v43",
   "./src/executive-dashboard.js?v=2026-07-15-executive-init-v40",
   "./src/offline-evidence-queue.js?v=2026-07-15-capture-evidence-v42",
   "./src/evidence-manager.js?v=2026-07-15-capture-evidence-v42",
