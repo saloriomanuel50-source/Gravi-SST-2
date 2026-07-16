@@ -17,7 +17,7 @@ alter table public.preventive_controls add column if not exists client_uuid text
 alter table public.preventive_controls add column if not exists sync_status text not null default 'synced';
 alter table public.preventive_controls add column if not exists deleted_at timestamptz;
 
-create unique index if not exists preventive_controls_client_uuid_uidx on public.preventive_controls(client_uuid) where client_uuid is not null;
+create unique index if not exists preventive_controls_client_uuid_uidx on public.preventive_controls(client_uuid);
 create index if not exists preventive_controls_work_idx on public.preventive_controls(work_id);
 create index if not exists preventive_controls_status_idx on public.preventive_controls(status);
 create index if not exists preventive_controls_type_idx on public.preventive_controls(control_type);
