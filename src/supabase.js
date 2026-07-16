@@ -764,18 +764,24 @@
       return {success:false,pending:true,clientMutationId};
     }
     try {
-      const method = operation === "create" ? "POST" : operation === "delete" ? "DELETE" : "PATCH";
-      const query = operation === "create" ? "" : entity==="attendance" ? `?work_id=eq.${encodeURIComponent(workId)}&attendance_date=eq.${encodeURIComponent(String(id).split("|").pop())}` : `?id=eq.${encodeURIComponent(id)}`;
+      const method = operation === "create" || operation === "upsert" ? "POST" : operation === "delete" ? "DELETE" : "PATCH";
+      const query = operation === "upsert" ? "?on_conflict=id" : operation === "create" ? "" : entity==="attendance" ? `?work_id=eq.${encodeURIComponent(workId)}&attendance_date=eq.${encodeURIComponent(String(id).split("|").pop())}` : `?id=eq.${encodeURIComponent(id)}`;
       const body = operation === "delete" ? undefined : entity === "attendance" ? {...mutation.data} : {...mutation.data,id:operation === "create" ? id : mutation.data.id};
-      await request(table,{method,query,body,headers:{Prefer:"return=minimal"},returnMinimal:true});
+      const prefer=operation === "upsert" ? "resolution=merge-duplicates,return=representation" : "return=minimal";
+      const result=await request(table,{method,query,body,headers:{Prefer:prefer},returnMinimal:operation !== "upsert"});
+      if(operation === "upsert"&&(!Array.isArray(result)||result.length!==1||result[0]?.id!=="global"))throw new Error("El upsert de cumplimiento no devolvi\u00f3 exactamente la fila global.");
       emitStatus("synced","Guardado y sincronizado.");
-      return {success:true,pending:false,clientMutationId};
+      return {success:true,pending:false,clientMutationId,row:operation === "upsert" ? result[0] : null};
     } catch(error) {
       if (isPermissionSyncError(error)) { emitStatus("error","No tienes autorizaci\u00f3n para sincronizar esta operaci\u00f3n."); throw error; }
       if (/409|conflict|version/i.test(String(error.message))) { emitStatus("error","Existe una versi\u00f3n m\u00e1s reciente. Recarga antes de continuar."); throw error; }
-      const pending = mutationStore(); pending.mutations.push(mutation); writeJson(PENDING_KEY,pending);
-      emitStatus("cached","Guardado localmente; pendiente de sincronizaci\u00f3n.");
-      return {success:false,pending:true,clientMutationId};
+      if (isNetworkSyncError(error)) {
+        const pending = mutationStore(); pending.mutations.push(mutation); writeJson(PENDING_KEY,pending);
+        emitStatus("cached","Guardado localmente; pendiente de sincronizaci\u00f3n.");
+        return {success:false,pending:true,clientMutationId};
+      }
+      emitStatus("error","Supabase no confirm\u00f3 la operaci\u00f3n.");
+      throw error;
     }
   }
 
@@ -805,8 +811,40 @@
     createInspection:item=>mutateEntity("records","create","inspections.create",item),updateInspection:item=>mutateEntity("records","update","inspections.edit",item),
     createIncident:item=>mutateEntity("records","create","incidents.create",item),updateIncident:item=>mutateEntity("records","update","incidents.edit",item),
     createInvestigation:item=>mutateEntity("investigations","create","incidents.create",item),updateInvestigation:item=>mutateEntity("investigations","update","incidents.edit",item),
-    updateCompliance:item=>mutateEntity("compliance","update","compliance.edit",item),saveMonthlyCompliance:item=>mutateEntity("compliance","update","compliance.monthly_report",item),updateNomMatrix:item=>mutateEntity("compliance","update","compliance.nom_matrix",item)
+    updateCompliance:item=>mutateEntity("compliance","upsert","compliance.edit",item),saveMonthlyCompliance:item=>mutateEntity("compliance","upsert","compliance.monthly_report",item),updateNomMatrix:item=>mutateEntity("compliance","upsert","compliance.nom_matrix",item)
   });
+
+  function isMissingComplianceRpc(error) {
+    return /\b404\b|PGRST202|function[^\n]*not found|could not find the function/i.test(String(error?.message || ""));
+  }
+
+  function isNetworkSyncError(error) {
+    return /failed to fetch|network|networkerror|load failed|timeout|timed out|abort|offline|connection/i.test(String(error?.message || "")) || global.navigator?.onLine === false;
+  }
+
+  async function saveComplianceEntryAtomic(item={}) {
+    requirePermission("compliance.edit","Tu perfil no permite editar cumplimiento.");
+    const {workId,nomCode,entry,criterion=null,audit=null,fallbackPayload}=item;
+    if(!workId||!nomCode||!entry||!fallbackPayload)throw new Error("Faltan datos requeridos para guardar la revisi\u00f3n de cumplimiento.");
+    if(!configured||!currentSession?.access_token||global.navigator?.onLine===false){
+      return mutateEntity("compliance","upsert","compliance.edit",{id:"global",workId,payload:fallbackPayload});
+    }
+    try {
+      const payload=await request("rpc/gravi_save_compliance_entry_v43",{method:"POST",body:{p_work_id:workId,p_nom_code:nomCode,p_entry:entry,p_criterion:criterion,p_audit:audit}});
+      if(!payload||typeof payload!=="object"||Array.isArray(payload))throw new Error("Supabase no devolvi\u00f3 el payload de cumplimiento actualizado.");
+      emitStatus("synced","Guardado y sincronizado.");
+      return {success:true,pending:false,payload};
+    } catch(error) {
+      if(isPermissionSyncError(error))throw error;
+      if(isMissingComplianceRpc(error)){
+        console.warn("[Compliance V43] RPC no disponible; se utiliz\u00f3 upsert global de respaldo.");
+        const fallback=await mutateEntity("compliance","upsert","compliance.edit",{id:"global",workId,payload:fallbackPayload});
+        return {...fallback,payload:fallback.row?.payload||fallbackPayload};
+      }
+      if(isNetworkSyncError(error))return mutateEntity("compliance","upsert","compliance.edit",{id:"global",workId,payload:fallbackPayload});
+      throw error;
+    }
+  }
 
   async function updatePassword(password) {
     if (!await ensureConfigured()) throw new Error("Supabase no est\u00e1 configurado en este despliegue.");
@@ -1303,6 +1341,7 @@
   global.GraviSupabase = {
     bootstrap, login, logout, scheduleSystemSync, syncSystemData, syncEntityMutation, flushEntityMutations, entityMutations, upsertRecord, syncRecords,
     listProfiles, updateProfile, inviteUser, updatePassword, loadCurrentProfileAndData, processAuthRedirect, resumePasswordSetup, clearPasswordSetupPending, clearAuthRedirectUrl, hasAuthRedirect, can, canPermission, canAnyPermission, requirePermission, applyPermissionVisibility, dynamicFormats, dailyReports, workPermits, preventiveControls, preventiveEvidence, workEvidence, evidence, signatures,
+    compliance:Object.freeze({saveEntry:saveComplianceEntryAtomic}),
     permissionGroups:() => clone(PERMISSION_GROUPS),
     roleDefaultPermissions:role => permissionDefaults(role),
     getProfilePermissions:profile => ({settings:permissionSettingsFor(profile || currentProfile || {}), effective:effectivePermissions(profile || currentProfile || {})}),

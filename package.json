@@ -18,7 +18,8 @@
     "test:permissions": "node tests/permissions.test.js",
     "test:permission-contract": "node tests/permission-contract.test.js",
     "test:permission-security": "node tests/permission-security.test.js",
-    "test:permission-routes": "node tests/permission-routes.test.js"
+    "test:permission-routes": "node tests/permission-routes.test.js",
+    "test:compliance": "node tests/compliance-hotfix.test.js"
   },
   "dependencies": {},
   "devDependencies": {}
