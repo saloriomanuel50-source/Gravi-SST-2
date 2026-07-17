@@ -639,14 +639,15 @@ function renderExecutiveDashboard55(){
   window.GraviAppState.executiveHomePending=true;
   return Promise.resolve(false);
 }
+function leaveExecutiveDashboard55(){window.GraviExecutiveDashboard?.unmount?.();document.body.classList.remove("has-executive-dashboard","sidebar-open");syncSidebarToggle52?.();}
 window.GraviExecutiveDashboardBridge={
   showView:()=>{q("#activeWorkButton").hidden=true;q("#developmentForm").hidden=true;setStartActions52("home");q("#printGeneralReportButton")&&(q("#printGeneralReportButton").hidden=true);displayView("developmentsView");markGlobal52("home");setBreadcrumb52([{label:"Inicio"}]);},
   exportReport:()=>window.GraviPrint?.printDocument({element:q(".gravi-executive-dashboard"),title:"reporte-ejecutivo-gravi-sst",orientation:"landscape",documentType:"executiveReport"}).catch(error=>{console.error("Reporte ejecutivo:",error);alert(error.message);}),
   exportWork:id=>{const previous=activeId;activeId=id;const work=workById(id),stats=complianceStats(id);renderComplianceReport({workId:id,date:today(),complianceSnapshot:{work,entries:stats.entries,stats}});activeId=previous;},
-  openWork:id=>{window.GraviExecutiveDashboard?.deactivate?.();openWorkDashboard55(id);},
-  openWorks:()=>{window.GraviExecutiveDashboard?.deactivate?.();renderAllWorks52();},
-  openAlerts:()=>{window.GraviExecutiveDashboard?.deactivate?.();renderAuditLog();},
-  openActivity:()=>{window.GraviExecutiveDashboard?.deactivate?.();renderAuditLog();}
+  openWork:id=>{const work=workById(id);if(!work){toast("La obra seleccionada ya no está disponible.");return false;}leaveExecutiveDashboard55();openWorkDashboard55(id);return true;},
+  openWorks:()=>{leaveExecutiveDashboard55();clearWorkContext55();renderDevelopments52(false);return true;},
+  openAlerts:()=>{leaveExecutiveDashboard55();renderAuditLog();return true;},
+  openActivity:()=>{leaveExecutiveDashboard55();renderAuditLog();return true;}
 };
 function openWorkDashboard55(workId=""){if(workId){activeId=workId;localStorage.setItem(ACTIVE_KEY,workId);}localStorage.setItem(WORK_CONTEXT_KEY,"1");localStorage.setItem(WORK_DASHBOARD_OPEN_KEY55,"1");document.body.classList.add("has-work-context");renderWorkDashboard54();}
 const dashboardRouteBaseSetActive55=setActive;

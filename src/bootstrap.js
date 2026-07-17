@@ -1,7 +1,7 @@
 (async function startGraviApplication(){
   "use strict";
 
-  const scripts = ["./src/print/print-manager.js?v=35","./src/app.js?v=2026-07-13-permissions-v38","./src/corporate-documents.js","./src/extensions.js?v=2","./src/executive-dashboard.js?v=2026-07-15-executive-init-v40","./src/system.js?v=2026-07-16-compliance-hotfix-v43","./src/offline-evidence-queue.js?v=2026-07-15-capture-evidence-v42","./src/evidence-manager.js?v=2026-07-15-capture-evidence-v42","./src/evidence-sync-coordinator.js?v=2026-07-15-capture-evidence-v42","./src/legacy-capture-adapter.js?v=2026-07-15-capture-evidence-v42","./src/preventive-observations.js?v=2026-07-15-capture-evidence-v42","./src/evidence-gallery.js?v=2026-07-15-capture-evidence-v42","./src/signatures.js?v=2026-07-13-permissions-v38","./src/work-permits.js?v=2026-07-15-capture-evidence-v42","./src/evidence-relations.js?v=2026-07-15-capture-evidence-v42","./src/capture-center.js?v=2026-07-15-capture-evidence-v42","./src/pwa.js"];
+  const scripts = ["./src/print/print-manager.js?v=35","./src/app.js?v=2026-07-13-permissions-v38","./src/corporate-documents.js","./src/extensions.js?v=2","./src/executive-dashboard.js?v=2026-07-17-executive-navigation-v44","./src/system.js?v=2026-07-17-executive-navigation-v44","./src/offline-evidence-queue.js?v=2026-07-15-capture-evidence-v42","./src/evidence-manager.js?v=2026-07-15-capture-evidence-v42","./src/evidence-sync-coordinator.js?v=2026-07-15-capture-evidence-v42","./src/legacy-capture-adapter.js?v=2026-07-15-capture-evidence-v42","./src/preventive-observations.js?v=2026-07-15-capture-evidence-v42","./src/evidence-gallery.js?v=2026-07-15-capture-evidence-v42","./src/signatures.js?v=2026-07-13-permissions-v38","./src/work-permits.js?v=2026-07-15-capture-evidence-v42","./src/evidence-relations.js?v=2026-07-15-capture-evidence-v42","./src/capture-center.js?v=2026-07-15-capture-evidence-v42","./src/pwa.js"];
   const loginForm = document.querySelector("#loginForm");
   const authMessage = document.querySelector("#authMessage");
   const setPasswordForm = document.querySelector("#setPasswordForm");
@@ -39,6 +39,7 @@
     const profileTitle = document.querySelector("#mobileProfileTitle");
     const profileRole = document.querySelector("#mobileProfileRole");
     const mobileUsersButton = document.querySelector("#mobileUsersButton");
+    const mobileLogoutButton = document.querySelector("#mobileLogoutButton");
     const closeProfile = document.querySelector("#mobileCloseProfile");
     if (!nav) return;
     const closeSheet = () => {
@@ -88,6 +89,10 @@
     mobileUsersButton?.addEventListener("click", () => {
       closeSheet();
       document.querySelector("#userManagementButton")?.click();
+    });
+    mobileLogoutButton?.addEventListener("click", () => {
+      closeSheet();
+      document.querySelector("#logoutButton")?.click();
     });
     closeProfile?.addEventListener("click", closeSheet);
     window.addEventListener("gvc:auth-ready", () => setActive(document.body.classList.contains("has-work-context") ? "home" : "works"));

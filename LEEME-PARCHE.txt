@@ -1,0 +1,28 @@
+GRAVI SST v44 — Parche de navegación del Dashboard Ejecutivo
+
+Reemplazar los archivos respetando exactamente sus rutas:
+- index.html
+- service-worker.js
+- src/bootstrap.js
+- src/executive-dashboard.js
+- src/system.js
+- src/styles/executive-dashboard.css
+- scripts/validate-build.js
+
+Agregar:
+- tests/executive-navigation.test.js
+
+Correcciones:
+1. Botón visible "Desarrollos / Obras" dentro del Dashboard Ejecutivo.
+2. Los nombres de las obras son enlaces directos al Dashboard de Obra.
+3. Rutas ejecutivas limpian correctamente el estado antes de cambiar de vista.
+4. Botones de navegación enlazados de forma robusta, incluso si hay más de uno.
+5. "Cerrar sesión" vuelve a estar visible en escritorio.
+6. Se agrega "Cerrar sesión" al panel de perfil móvil.
+7. Caché PWA incrementado a v44 para evitar que sobreviva el JavaScript anterior.
+
+Validación ejecutada:
+- npm run build: OK
+- node --check: OK
+- prueba de regresión: OK
+- harness funcional de navegación: OK

@@ -1,0 +1,13 @@
+"use strict";
+const fs=require("fs"),assert=require("assert"),path=require("path");
+const root=path.resolve(__dirname,"..");
+const executive=fs.readFileSync(path.join(root,"src/executive-dashboard.js"),"utf8");
+const system=fs.readFileSync(path.join(root,"src/system.js"),"utf8");
+const index=fs.readFileSync(path.join(root,"index.html"),"utf8");
+assert(executive.includes('class="executive-route-button"'),"Falta salida visible a Desarrollos / Obras.");
+assert(executive.includes('class="executive-work-link"'),"El nombre de obra debe ser interactivo.");
+assert(executive.includes('querySelectorAll("[data-open-works]")'),"Todas las salidas del dashboard deben enlazarse.");
+assert(system.includes("function leaveExecutiveDashboard55()"),"Falta limpieza central de la ruta ejecutiva.");
+assert(system.includes("renderDevelopments52(false)"),"La salida debe abrir el catálogo de desarrollos/obras.");
+assert(index.includes('id="mobileLogoutButton"'),"Falta cierre de sesión accesible en móvil.");
+console.log("Executive navigation regression OK");
