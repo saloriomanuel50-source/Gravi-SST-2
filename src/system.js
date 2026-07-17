@@ -684,7 +684,110 @@ bindDevelopmentCatalog52=function(){cardActionsBaseBindDevelopmentCatalog53();q(
 const locationBasePrepareWorkForm53=prepareWorkForm;
 prepareWorkForm=function(work=null){if(workLocationMap53){workLocationMap53.remove();}workLocationMap53=null;workLocationMarker53=null;locationBasePrepareWorkForm53(work);const mapNode=q("#workLocationMap");if(mapNode)mapNode.hidden=true;bindWorkLocationTools53();};
 document.addEventListener("submit",validateWorkLocationSubmit53,true);
-init=function(){migrateDevelopmentCatalog52();migratePhase3Data();migratePhase5Data();phase2Initialize();registerPhase4Extensions();registerPhase5Extensions();ensureMonthlySchedules();ensureAutomaticMonthlyReports();bindPhase3Shell();bindComplianceDelegation();bindOperationalGuards();bindSuccessMessages();bindPhase5Events();bindNavigation52();bindDevelopmentCatalog52();bindSupabaseStatus();bindRolePermissions();bindOperationalTraceability();bindGranularMutationsV38();if(hasWorkContext52()){document.body.classList.add("has-work-context");renderDashboard();displayView("homeView");}else renderDevelopments52(true);};
+
+/* Parche v45: navegación centralizada y tolerante a fallos.
+ * La barra lateral no depende de que todos los módulos terminen de inicializarse.
+ */
+const NAVIGATION_PATCH_VERSION45="2026-07-17-sidebar-navigation-v45";
+let navigationReliabilityInstalled45=false;
+function closeSidebar45(){document.body.classList.remove("sidebar-open");syncSidebarToggle52?.();}
+function requireWorkContext45(){
+  if(activeWork())return true;
+  leaveExecutiveDashboard55?.();
+  clearWorkContext55?.();
+  renderDevelopments52(false);
+  toast("Selecciona una obra para abrir este módulo.");
+  return false;
+}
+function leaveExecutiveForRoute45(target){
+  if(target!=="home"&&target!=="generalHome")leaveExecutiveDashboard55?.();
+  window.GraviAppState=window.GraviAppState||{};
+  window.GraviAppState.currentRoute=target;
+}
+function dispatchSidebarRoute45(kind,target){
+  closeSidebar45();
+  leaveExecutiveForRoute45(target);
+  if(kind==="global"){
+    if(target==="home"||target==="generalHome")return renderExecutiveDashboard55();
+    if(target==="developments")return renderDevelopments52(false);
+    if(target==="allWorks")return renderAllWorks52();
+    if(target==="generalHistory")return openGeneralHistory52();
+    if(target==="administration")return openAdministration52();
+    if(target==="auditLog")return renderAuditLog();
+    if(target==="changeWork"){clearWorkContext55();return renderDevelopments52(false);}
+    if(!requireWorkContext45())return false;
+    if(target==="dailyLog")return renderDailyLog(today());
+    if(target==="captureCenter")return window.GraviCaptureCenter?.open?.()??openCaptureCenter53();
+    if(target==="incidentHistory")return openIncidentHistory52();
+    if(target==="monthly")return openMonthly52();
+    if(target==="permitsAts")return openPreventiveControlsPhase3();
+    if(target==="photoEvidence")return window.GraviEvidenceGallery?.open?.()??openQuickObservation53("Evidencia fotográfica","Evidencia","Media",true);
+    throw new Error(`Ruta global no implementada: ${target}`);
+  }
+  if(!requireWorkContext45()&&target!=="dashboard")return false;
+  if(target==="dashboard")return activeWork()?openWorkDashboard55(activeId):renderDevelopments52(false);
+  if(["contractors","workers","visitors","attendance","workforce","investigations","histories"].includes(target))return openModule(target);
+  if(target==="inspections")return q("#inspectionButton")?.click();
+  if(target==="incidents")return openIncidentHistory52();
+  if(target==="compliance")return openComplianceModule();
+  if(target==="dynamicFormats"){
+    if(window.GraviDynamicFormatsNavigation?.open)return window.GraviDynamicFormatsNavigation.open();
+    if(window.showDynamicFormatsView){window.showDynamicFormatsView();return true;}
+    toast("Documentos de obra todavía se están cargando.");
+    return false;
+  }
+  if(target==="badges")return openModule("workers");
+  if(target==="matrix")return openMatrixCompatibility();
+  throw new Error(`Ruta de obra no implementada: ${target}`);
+}
+function sidebarNavigationClick45(event){
+  const button=event.target.closest?.(".sidebar-nav button[data-nav52],.sidebar-nav button[data-phase3-nav]");
+  if(!button)return;
+  const kind=button.dataset.nav52?"global":"work",target=button.dataset.nav52||button.dataset.phase3Nav;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  try{
+    const result=dispatchSidebarRoute45(kind,target);
+    qa(".sidebar-nav button").forEach(item=>item.classList.toggle("active",item===button));
+    if(result&&typeof result.then==="function")result.catch(error=>{console.error(`[GRAVI Navigation v45] ${kind}:${target}`,error);toast("No fue posible abrir esta sección. Inténtalo nuevamente.");});
+  }catch(error){
+    console.error(`[GRAVI Navigation v45] ${kind}:${target}`,error);
+    toast("No fue posible abrir esta sección. Recarga la aplicación e inténtalo nuevamente.");
+  }
+}
+function sidebarToggleClick45(event){
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  if(matchMedia("(max-width:800px)").matches)document.body.classList.toggle("sidebar-open");
+  else{const collapsed=!document.body.classList.contains("sidebar-collapsed");document.body.classList.toggle("sidebar-collapsed",collapsed);localStorage.setItem(SIDEBAR_STATE_KEY,collapsed?"1":"0");}
+  syncSidebarToggle52?.();
+}
+function installNavigationReliability45(){
+  if(navigationReliabilityInstalled45)return;
+  navigationReliabilityInstalled45=true;
+  document.addEventListener("click",sidebarNavigationClick45,true);
+  q("#sidebarToggle")?.addEventListener("click",sidebarToggleClick45,true);
+  q("#sidebarBackdrop")?.addEventListener("click",event=>{event.preventDefault();event.stopImmediatePropagation();closeSidebar45();},true);
+  window.GraviNavigation=Object.freeze({version:NAVIGATION_PATCH_VERSION45,dispatch:dispatchSidebarRoute45,closeSidebar:closeSidebar45});
+}
+function safeInitStage45(name,callback){
+  try{return callback();}
+  catch(error){console.error(`[GRAVI Init v45] ${name}`,error);return false;}
+}
+init=function(){
+  installNavigationReliability45();
+  const stages=[
+    ["migrateDevelopmentCatalog",migrateDevelopmentCatalog52],["migratePhase3Data",migratePhase3Data],["migratePhase5Data",migratePhase5Data],
+    ["phase2Initialize",phase2Initialize],["registerPhase4Extensions",registerPhase4Extensions],["registerPhase5Extensions",registerPhase5Extensions],
+    ["ensureMonthlySchedules",ensureMonthlySchedules],["ensureAutomaticMonthlyReports",ensureAutomaticMonthlyReports],["bindPhase3Shell",bindPhase3Shell],
+    ["bindComplianceDelegation",bindComplianceDelegation],["bindOperationalGuards",bindOperationalGuards],["bindSuccessMessages",bindSuccessMessages],
+    ["bindPhase5Events",bindPhase5Events],["bindNavigation",bindNavigation52],["bindDevelopmentCatalog",bindDevelopmentCatalog52],
+    ["bindSupabaseStatus",bindSupabaseStatus],["bindRolePermissions",bindRolePermissions],["bindOperationalTraceability",bindOperationalTraceability],
+    ["bindGranularMutations",bindGranularMutationsV38]
+  ];
+  stages.forEach(([name,callback])=>safeInitStage45(name,callback));
+  safeInitStage45("initialRoute",()=>{if(hasWorkContext52()){document.body.classList.add("has-work-context");renderDashboard();displayView("homeView");}else renderDevelopments52(true);});
+};
 const baseInvestigationForm=investigationForm;
 investigationForm=p=>baseInvestigationForm(p||{});
 

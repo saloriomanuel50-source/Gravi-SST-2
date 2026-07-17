@@ -1,0 +1,31 @@
+GRAVI SST v2.0 - PARCHE DE NAVEGACION V45
+Fecha: 17 de julio de 2026
+
+PROBLEMA CORREGIDO
+La barra lateral podía quedar visible pero sin responder, tanto en escritorio como en teléfono. La causa era la combinación de varios controladores onclick que se sobrescribían, una inicialización monolítica que dejaba la navegación sin enlazar cuando otro módulo fallaba y el caché PWA v44 que podía conservar JavaScript anterior.
+
+CORRECCION
+- Despachador central de rutas para toda la barra lateral.
+- Captura temprana de clics para evitar colisiones entre módulos.
+- Navegación instalada antes del resto de las etapas de inicialización.
+- Inicialización tolerante a fallos: un módulo aislado no desactiva el menú completo.
+- Apertura confiable de Documentos de obra / Formatos dinámicos.
+- Corrección del botón de contraer/desplegar en escritorio y móvil.
+- Caché PWA incrementado a v45.
+- Prueba automatizada de 11 rutas globales y 10 rutas de obra.
+
+ARCHIVOS MODIFICADOS
+index.html
+package.json
+scripts/validate-build.js
+service-worker.js
+src/bootstrap.js
+src/dynamic-formats-bootstrap.js
+src/system.js
+tests/evidence-recovery.test.js
+tests/sidebar-navigation.test.js
+
+VALIDACION
+npm run build
+npm run test:navigation
+Todas las pruebas funcionales existentes del proyecto fueron ejecutadas correctamente.

@@ -79,7 +79,18 @@
     window.scrollTo({top:0, behavior:"smooth"});
   }
 
+  async function openDynamicFormats() {
+    const ready = await bootstrapDynamicFormats();
+    if (!ready) {
+      console.warn("[DynamicFormats] Modulo aun no disponible.");
+      return false;
+    }
+    showDynamicFormatsView();
+    return true;
+  }
+
   bindNavigation();
   global.addEventListener("gvc:auth-ready", () => { bootstrapDynamicFormats(); });
   global.showDynamicFormatsView = showDynamicFormatsView;
+  global.GraviDynamicFormatsNavigation = Object.freeze({open: openDynamicFormats, bootstrap: bootstrapDynamicFormats});
 })(window);

@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_NAME = "gravi-sst-v2-shell-v44";
+const CACHE_NAME = "gravi-sst-v2-shell-v45";
 const DOCUMENT_CACHE_VERSION = "v38";
 const ACTIVE_CACHE_NAME = `${CACHE_NAME}-${DOCUMENT_CACHE_VERSION}`;
 const APP_SHELL = [
@@ -16,7 +16,7 @@ const APP_SHELL = [
   "./src/styles/phase4.css?v=1",
   "./src/styles/phase5.css?v=1",
   "./src/styles/phase5-2.css?v=18",
-  "./src/styles/executive-dashboard.css?v=2026-07-17-executive-navigation-v44",
+  "./src/styles/executive-dashboard.css?v=2026-07-17-sidebar-navigation-v45",
   "./src/styles/work-permits.css?v=1",
   "./src/styles/capture-center.css?v=2026-07-15-capture-v42",
   "./src/styles/evidence-gallery.css?v=2026-07-15-capture-v42",
@@ -25,12 +25,12 @@ const APP_SHELL = [
   "./src/app.js?v=2026-07-13-permissions-v38",
   "./src/supabase.js?v=2026-07-16-compliance-hotfix-v43",
   "./src/repositories.js?v=2026-07-15-capture-evidence-v42",
-  "./src/bootstrap.js?v=2026-07-17-executive-navigation-v44",
+  "./src/bootstrap.js?v=2026-07-17-sidebar-navigation-v45",
   "./src/print/print-manager.js?v=35",
   "./src/corporate-documents.js?v=35",
   "./src/extensions.js?v=2026-07-07-hotfix-charset",
-  "./src/system.js?v=2026-07-17-executive-navigation-v44",
-  "./src/executive-dashboard.js?v=2026-07-17-executive-navigation-v44",
+  "./src/system.js?v=2026-07-17-sidebar-navigation-v45",
+  "./src/executive-dashboard.js?v=2026-07-17-sidebar-navigation-v45",
   "./src/offline-evidence-queue.js?v=2026-07-15-capture-evidence-v42",
   "./src/evidence-manager.js?v=2026-07-15-capture-evidence-v42",
   "./src/evidence-sync-coordinator.js?v=2026-07-15-capture-evidence-v42",
