@@ -87,6 +87,6 @@ async function testCorrectionCancel(){
   assert.ok(supabase.includes('sync_status:"synced"'));assert.ok(supabase.includes("listBySource:async(sourceModule,sourceEntryId)"));
   assert.ok(sql.includes("enforce_gravi_evidence_immutability"));assert.ok(sql.includes("work_user_assignments"));
   assert.ok(storage.includes("storage.foldername(name))[2]"));assert.ok(storage.includes("owner_id=auth.uid()::text"));assert.ok(!storage.includes("drop policy if exists work_permits"));
-  assert.ok(sw.includes("gravi-sst-v2-shell-v45"));assert.equal((sw.match(/print-documents\.css\?v=34/g)||[]).length,0);
+  assert.ok(sw.includes("gravi-sst-v2-shell-v47"));assert.equal((sw.match(/print-documents\.css\?v=34/g)||[]).length,0);
   console.log("Recuperacion remota, precedencia local, mutex, orden de sincronizacion, correccion, RLS, Storage y PWA V43 verificados.");
 })().catch(error=>{console.error(error);process.exitCode=1;});

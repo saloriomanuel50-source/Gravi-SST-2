@@ -1,0 +1,31 @@
+GRAVI SST - PARCHE DE ESTABILIDAD Y SINCRONIZACION V47
+
+Ruta oficial del repositorio:
+C:\dev\Gravi-SST-2
+
+Este parche corrige el error al abrir Asistencia y restaura el principio de actualizacion local inmediata antes de sincronizar con Supabase.
+
+APLICACION
+1. Extraer el ZIP del parche.
+2. Copiar TODO EL CONTENIDO INTERNO directamente en C:\dev\Gravi-SST-2.
+3. Aceptar reemplazar archivos en el destino.
+4. No copiar la carpeta contenedora para evitar duplicar rutas.
+
+VALIDACION
+cd "C:\dev\Gravi-SST-2"
+npm run build
+npm run test:attendance
+npm run test:stability
+npm run test:navigation
+npm.cmd run dev
+
+Abrir http://localhost:4173 y validar antes de publicar.
+
+PUBLICACION
+Ctrl+C para detener el servidor.
+git status
+git add .
+git commit -m "Corrige estabilidad y sincronizacion local v47"
+git push origin main
+
+Después del despliegue, recargar con Ctrl+F5. En PWA, cerrarla completamente y volver a abrirla para activar el cache v47.

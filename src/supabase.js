@@ -649,7 +649,6 @@
   async function loadAuthenticatedData() {
     try {
       await flushPending();
-      await flushEntityMutations();
       const remote = await loadRemote();
       const localSystem = readJson(SYSTEM_CACHE_KEY, {});
       const localRecords = readJson(RECORDS_CACHE_KEY, []);
@@ -764,6 +763,11 @@
     writeJson(PENDING_KEY,pending);
   }
 
+  function pendingEntityMutations(entity=null) {
+    const rows=mutationStore().mutations;
+    return clone(entity?rows.filter(item=>item.entity===entity):rows);
+  }
+
   async function syncEntityMutation({entity,operation,requiredPermission,id,data:mutationData,workId=null,clientMutationId=crypto.randomUUID()}) {
     if (!TABLES[entity] && !Object.values(TABLES).includes(entity)) throw new Error(`Entidad de sincronizaci\u00f3n desconocida: ${entity}`);
     requirePermission(requiredPermission, "No tienes autorizaci\u00f3n para sincronizar esta operaci\u00f3n.");
@@ -776,17 +780,17 @@
     }
     try {
       const method = operation === "create" || operation === "upsert" ? "POST" : operation === "delete" ? "DELETE" : "PATCH";
-      const query = operation === "upsert" ? (entity==="attendance"?"?on_conflict=work_id,attendance_date":"?on_conflict=id") : operation === "create" ? "" : entity==="attendance" ? `?work_id=eq.${encodeURIComponent(workId)}&attendance_date=eq.${encodeURIComponent(String(id).split("|").pop())}` : `?id=eq.${encodeURIComponent(id)}`;
+      const query = operation === "upsert" ? "?on_conflict=id" : operation === "create" ? "" : entity==="attendance" ? `?work_id=eq.${encodeURIComponent(workId)}&attendance_date=eq.${encodeURIComponent(String(id).split("|").pop())}` : `?id=eq.${encodeURIComponent(id)}`;
       const body = operation === "delete" ? undefined : entity === "attendance" ? {...mutation.data} : {...mutation.data,id:operation === "create" ? id : mutation.data.id};
       const prefer=operation === "upsert" ? "resolution=merge-duplicates,return=representation" : "return=minimal";
       const result=await request(table,{method,query,body,headers:{Prefer:prefer},returnMinimal:operation !== "upsert"});
-      if(operation === "upsert"&&entity==="compliance"&&(!Array.isArray(result)||result.length!==1||result[0]?.id!=="global"))throw new Error("El upsert de cumplimiento no devolvi\u00f3 exactamente la fila global.");
+      if(operation === "upsert"&&(!Array.isArray(result)||result.length!==1||result[0]?.id!=="global"))throw new Error("El upsert de cumplimiento no devolvi\u00f3 exactamente la fila global.");
       emitStatus("synced","Guardado y sincronizado.");
       return {success:true,pending:false,clientMutationId,row:operation === "upsert" ? result[0] : null};
     } catch(error) {
       if (isPermissionSyncError(error)) { emitStatus("error","No tienes autorizaci\u00f3n para sincronizar esta operaci\u00f3n."); throw error; }
-      if (entity!=="attendance"&&(/409|conflict|version/i.test(String(error.message)))) { emitStatus("error","Existe una versi\u00f3n m\u00e1s reciente. Recarga antes de continuar."); throw error; }
-      if (isNetworkSyncError(error) || entity==="attendance") {
+      if (/409|conflict|version/i.test(String(error.message))) { emitStatus("error","Existe una versi\u00f3n m\u00e1s reciente. Recarga antes de continuar."); throw error; }
+      if (isNetworkSyncError(error)) {
         queueEntityMutation(mutation);
         emitStatus("cached","Guardado localmente; pendiente de sincronizaci\u00f3n.");
         return {success:false,pending:true,clientMutationId};
@@ -806,11 +810,6 @@
     return {pending:mutationStore().mutations.length};
   }
 
-  function pendingEntityMutations(entity=null) {
-    const rows=mutationStore().mutations;
-    return clone(entity?rows.filter(item=>item.entity===entity):rows);
-  }
-
   const mutationScopedRow=(item,columns={})=>{const row={...baseRow(item),work_id:item.workId||"legacy"};Object.entries(columns).forEach(([column,source])=>row[column]=item[source]??null);return row;};
   const mutationPayload={
     contractors:item=>mutationScopedRow(item,{name:"name",status:"status"}),workers:item=>mutationScopedRow(item,{name:"name",status:"status",contractor_id:"contractorId"}),
@@ -823,7 +822,7 @@
     createContractor:item=>mutateEntity("contractors","create","contractors.create",item),updateContractor:item=>mutateEntity("contractors","update","contractors.edit",item),
     createWorker:item=>mutateEntity("workers","create","workers.create",item),updateWorker:item=>mutateEntity("workers","update","workers.edit",item),
     createVisitor:item=>mutateEntity("visitors","create","visitors.register",item),updateVisitor:item=>mutateEntity("visitors","update","visitors.edit",item),
-    registerAttendance:item=>mutateEntity("attendance","upsert","attendance.register",item),editAttendance:item=>mutateEntity("attendance","upsert","attendance.edit",item),
+    registerAttendance:async item=>{let exists=Boolean(item.remoteExists);if(configured&&currentSession?.access_token&&global.navigator?.onLine!==false){try{const rows=await request(TABLES.attendance,{query:`?work_id=eq.${encodeURIComponent(item.workId)}&attendance_date=eq.${encodeURIComponent(item.date)}&select=work_id`});exists=Boolean(rows?.length);}catch(error){if(!isNetworkSyncError(error))throw error;}}return mutateEntity("attendance",exists?"update":"create","attendance.register",item);},editAttendance:item=>mutateEntity("attendance","update","attendance.edit",item),
     createInspection:item=>mutateEntity("records","create","inspections.create",item),updateInspection:item=>mutateEntity("records","update","inspections.edit",item),
     createIncident:item=>mutateEntity("records","create","incidents.create",item),updateIncident:item=>mutateEntity("records","update","incidents.edit",item),
     createInvestigation:item=>mutateEntity("investigations","create","incidents.create",item),updateInvestigation:item=>mutateEntity("investigations","update","incidents.edit",item),
@@ -1260,7 +1259,7 @@
   });
 
   global.addEventListener("online", () => {
-    if (currentSession && configured) flushEntityMutations().then(result=>global.dispatchEvent(new CustomEvent("gvc:entity-mutations-flushed",{detail:result}))).catch(error=>console.warn("Sincronizaci\u00f3n de cambios pendientes.",error));
+    if (currentSession && configured) flushEntityMutations().then(result=>global.dispatchEvent(new CustomEvent("gvc:entity-mutations-flushed",{detail:result}))).catch(error=>console.warn("Sincronización de cambios pendientes.",error));
     if (currentSession && configured) prepareDailyReports().catch(error => console.warn("Sincronizaci\u00f3n de Registro Diario pendiente.", error));
   });
 
