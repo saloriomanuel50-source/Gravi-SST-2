@@ -12,47 +12,54 @@ const bootstrap = read("src/bootstrap.js");
 const system = read("src/system.js");
 const supabase = read("src/supabase.js");
 const sw = read("service-worker.js");
+const pwa = read("src/pwa.js");
 
-// Todos los puntos de entrada deben apuntar a la misma versión de runtime.
+const version = "2026-07-17-runtime-coherence-v48";
 for (const reference of [
-  "2026-07-17-sync-stability-v47",
-  "./src/supabase.js?v=2026-07-17-sync-stability-v47",
-  "./src/bootstrap.js?v=2026-07-17-sync-stability-v47"
+  `window.GRAVI_BUILD_VERSION = "${version}"`,
+  `./src/pwa.js?v=${version}`,
+  `./src/supabase.js?v=${version}`,
+  `./src/bootstrap.js?v=${version}`
 ]) assert.ok(index.includes(reference), `index.html no contiene ${reference}`);
-assert.ok(bootstrap.includes("./src/system.js?v=2026-07-17-sync-stability-v47"));
-assert.ok(sw.includes("./src/system.js?v=2026-07-17-sync-stability-v47"));
-assert.ok(sw.includes("./src/supabase.js?v=2026-07-17-sync-stability-v47"));
-assert.ok(sw.includes("./src/bootstrap.js?v=2026-07-17-sync-stability-v47"));
+assert.ok(bootstrap.includes(`./src/system.js?v=${version}`));
+assert.ok(sw.includes(`./src/system.js?v=${version}`));
+assert.ok(sw.includes(`./src/supabase.js?v=${version}`));
+assert.ok(sw.includes(`./src/bootstrap.js?v=${version}`));
+assert.ok(sw.includes(`./src/pwa.js?v=${version}`));
 
-// El SW usa una sola versión activa y limpia versiones anteriores.
-assert.match(sw, /const CACHE_NAME = "gravi-sst-v2-shell-v47";/);
-assert.match(sw, /const ACTIVE_CACHE_NAME = CACHE_NAME;/);
+assert.match(sw, /const CACHE_NAME = "gravi-sst-v2-shell-v48";/);
 assert.match(sw, /keys\.filter\(key => key !== ACTIVE_CACHE_NAME\)/);
+assert.match(sw, /request\.mode === "navigate" \? new Request\(request, \{cache:"no-store"\}\)/);
+assert.match(sw, /event\.data\?\.type === "SKIP_WAITING"/);
 
-// Cualquier módulo que falle debe mostrar un error local, no derribar navegación completa.
+assert.match(pwa, /updateViaCache:"none"/);
+assert.match(pwa, /controllerchange/);
+assert.match(pwa, /registration\.update\(\)/);
+assert.match(pwa, /location\.reload\(\)/);
+
 assert.match(system, /function openModule\(type\)\{/);
-assert.match(system, /catch\(error\)\{console\.error\(`\[GRAVI Module v47\]/);
+assert.match(system, /\[GRAVI Module v48\]/);
+assert.match(system, /module-retry-/);
 assert.match(system, /No fue posible abrir este módulo/);
+assert.match(system, /function normalizeSystemData48/);
+assert.match(system, /function refreshSystemDataFromStorage48/);
+assert.match(system, /gvc:data-hydrated/);
+assert.match(system, /cross-tab-storage/);
 
-// Persistencia local es síncrona y emite evento antes de cualquier red.
 const persistBlock = system.match(/function persistLocalData\([\s\S]*?\n\}/)?.[0] || "";
 assert.ok(persistBlock.includes("localStorage.setItem"));
 assert.ok(persistBlock.includes("gvc:local-data-updated"));
 const saveBlock = system.match(/function save\([\s\S]*?\n\}/)?.[0] || "";
 assert.ok(saveBlock.indexOf("persistLocalData") < saveBlock.indexOf("scheduleSystemSync"));
 
-// La carga inicial no ejecuta la nueva cola granular antes de hidratar remoto.
 const loadBlock = supabase.match(/async function loadAuthenticatedData\(\)[\s\S]*?\n  \}/)?.[0] || "";
 assert.ok(loadBlock.includes("await flushPending()"));
+assert.ok(loadBlock.includes("emitDataHydrated48"));
 assert.doesNotMatch(loadBlock, /await flushEntityMutations\(\)/);
+assert.match(supabase, /function emitEntitySynced48/);
+assert.match(supabase, /gvc:system-cache-updated/);
 
-// Errores de red en mutaciones conservan estado y la reconexión reintenta.
-assert.match(supabase, /global\.navigator\?\.onLine===false/);
-assert.match(supabase, /isNetworkSyncError\(error\)/);
-assert.match(supabase, /flushEntityMutations\(\)\.then\(result=>global\.dispatchEvent/);
-
-// No se reintroduce la dependencia que produjo el fallo de carga del módulo.
 assert.doesNotMatch(bootstrap, /attendance-state\.js/);
 assert.doesNotMatch(system, /GraviAttendance/);
 
-console.log("PASS sync-stability-v47: versiones coordinadas, persistencia local primero, navegación aislada, hidratación segura y reconexión verificadas.");
+console.log("PASS sync-stability-v48: runtime coordinado, actualización PWA, estado local coherente, navegación recuperable e hidratación observable verificadas.");

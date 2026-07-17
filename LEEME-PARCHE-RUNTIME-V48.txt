@@ -1,0 +1,14 @@
+GRAVI SST — PARCHE DE COHERENCIA DE RUNTIME V48
+
+Ruta del proyecto: C:\dev\Gravi-SST-2
+
+Corrige módulos que solo funcionan después de recargar y datos que no se reflejan mientras sincronizan.
+
+Aplicación:
+1. Copiar el contenido interno del parche sobre C:\dev\Gravi-SST-2.
+2. Ejecutar npm run build.
+3. Ejecutar npm run test:runtime, npm run test:attendance y npm run test:navigation.
+4. Probar localmente antes de publicar.
+5. Publicar con Git únicamente si las pruebas son correctas.
+
+La primera transición desde v47 puede requerir una recarga manual. Después de que v48 esté activo, el cambio de Service Worker provoca una única recarga controlada.

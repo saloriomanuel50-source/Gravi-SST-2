@@ -1,6 +1,7 @@
 {
   "installCommand": "npm install",
   "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
   "outputDirectory": ".",
   "rewrites": [
     {"source": "/set-password", "destination": "/index.html"}

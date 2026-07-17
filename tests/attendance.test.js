@@ -20,32 +20,32 @@ assert.doesNotMatch(bootstrap, /attendance-state\.js/);
 // Un solo punto de entrada de interacción y sin onclick recreado durante render.
 assert.match(system, /\[data-att-toggle\]/);
 assert.match(system, /stopImmediatePropagation\(\)/);
-assert.equal((system.match(/applyAttendanceChange47\(/g) || []).length >= 2, true);
+assert.equal((system.match(/applyAttendanceChange48\(/g) || []).length >= 2, true);
 assert.doesNotMatch(system, /qa\("\[data-att-toggle\]"\)[\s\S]{0,120}\.forEach/);
 
 // Contrato optimista: mutar -> persistir -> renderizar -> sincronizar.
-const optimisticBlock = system.match(/function applyAttendanceChange47\([\s\S]*?\n\}/)?.[0] || "";
-assert.ok(optimisticBlock, "No se encontró applyAttendanceChange47");
+const optimisticBlock = system.match(/function applyAttendanceChange48\([\s\S]*?\n\}/)?.[0] || "";
+assert.ok(optimisticBlock, "No se encontró applyAttendanceChange48");
 const mutateIndex = optimisticBlock.indexOf("data.attendance[key][workerId]=status");
 const persistIndex = optimisticBlock.indexOf('persistLocalData("attendance")');
 const renderIndex = optimisticBlock.indexOf("renderAttendance(date)");
-const syncIndex = optimisticBlock.indexOf("enqueueAttendanceSync47");
+const syncIndex = optimisticBlock.indexOf("enqueueAttendanceSync48");
 assert.ok(mutateIndex >= 0 && persistIndex > mutateIndex, "La asistencia no se persiste después de mutar");
 assert.ok(renderIndex > persistIndex, "La asistencia no se renderiza inmediatamente después de persistir");
 assert.ok(syncIndex > renderIndex, "La sincronización debe iniciar después de actualizar la interfaz");
 
 // Serialización por obra/fecha y protección frente a respuestas obsoletas.
 for (const contract of [
-  "attendanceSyncChains47",
-  "attendanceSyncVersions47",
-  "previous=attendanceSyncChains47.get(key)||Promise.resolve()",
-  "attendanceSyncVersions47.get(stateKey)===version"
+  "attendanceSyncChains48",
+  "attendanceSyncVersions48",
+  "previous=attendanceSyncChains48.get(key)||Promise.resolve()",
+  "attendanceSyncVersions48.get(stateKey)===version"
 ]) assert.ok(system.includes(contract), `Falta contrato de concurrencia: ${contract}`);
 
 // El estado de la fila y los contadores deben provenir del estado local actual.
 for (const contract of [
-  "attendanceSummary47",
-  "attendanceSyncLabel47",
+  "attendanceSummary48",
+  "attendanceSyncLabel48",
   'class="attendance-worker-card ${current==="P"?"is-present":"is-absent"}',
   "renderAttendance(date)"
 ]) assert.ok(system.includes(contract), `Falta contrato visual de asistencia: ${contract}`);
@@ -71,7 +71,7 @@ assert.match(supabase, /registerAttendance:async item=>\{let exists=Boolean\(ite
 assert.match(css, /attendance-worker-card\.is-saving/);
 assert.match(css, /@media\(max-width:900px\)/);
 assert.match(css, /@media\(max-width:600px\)/);
-assert.match(serviceWorker, /const CACHE_NAME = "gravi-sst-v2-shell-v47"/);
+assert.match(serviceWorker, /const CACHE_NAME = "gravi-sst-v2-shell-v48"/);
 assert.doesNotMatch(serviceWorker, /attendance-state\.js/);
 
-console.log("PASS attendance-v47: inicio seguro, UI optimista, contadores, concurrencia, cola offline, hidratación protegida y caché coordinada verificados.");
+console.log("PASS attendance-v48: inicio seguro, UI optimista, contadores, concurrencia, cola offline, hidratación protegida y caché coordinada verificados.");

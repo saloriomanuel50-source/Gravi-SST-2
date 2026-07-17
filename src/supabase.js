@@ -14,6 +14,7 @@
   const DAILY_REPORTS_MIGRATION_KEY = "gvc-daily-log-v2-migration";
   const USER_PERMISSIONS_KEY = "gvc-user-permissions-v1";
   const PENDING_INVITE_PERMISSIONS_KEY = "gvc-user-permissions-pending-invites-v1";
+  const RUNTIME_VERSION48 = "2026-07-17-runtime-coherence-v48";
   const TABLES = {
     developments: "desarrollos",
     works: "obras",
@@ -70,6 +71,14 @@
 
   function clone(value) {
     return JSON.parse(JSON.stringify(value));
+  }
+
+  function emitDataHydrated48(detail={}) {
+    global.dispatchEvent(new CustomEvent("gvc:data-hydrated",{detail:{runtime:RUNTIME_VERSION48,at:new Date().toISOString(),...detail}}));
+  }
+
+  function emitEntitySynced48(detail={}) {
+    global.dispatchEvent(new CustomEvent("gvc:entity-synced",{detail:{runtime:RUNTIME_VERSION48,at:new Date().toISOString(),...detail}}));
   }
 
   function permissionDefaults(role) {
@@ -658,11 +667,13 @@
       if (remoteCount === 0 && hasLocalBusinessData(localSystem, localRecords)) {
         if (!can("admin-write")) {
           emitStatus("error", "Un Administrador debe realizar la migración inicial");
+          emitDataHydrated48({source:"cache",migrationPending:true});
           return {configured:true,authenticated:true,source:"cache",migrationPending:true};
         }
         await performSystemSync(localSystem);
         await syncRecords(localRecords);
         emitStatus("synced", "Datos locales migrados a Supabase");
+        emitDataHydrated48({source:"local-migration"});
         return {configured:true,authenticated:true,source:"local-migration"};
       }
 
@@ -671,11 +682,13 @@
         writeJson(RECORDS_CACHE_KEY, payloads(remote.records));
       }
       emitStatus("synced", "Datos cargados desde Supabase");
+      emitDataHydrated48({source:"supabase",remoteCount});
       return {configured:true,authenticated:true,source:"supabase"};
     } catch (error) {
       emitStatus("error", "Supabase no disponible; usando caché local");
       if(isPermissionSyncError(error)){clearSensitiveCache();emitStatus("error","Tu sesi\u00f3n ya no tiene acceso a estos datos.");return {configured:true,authenticated:true,source:"denied",error};}
       console.error("No fue posible cargar datos desde Supabase.", error);
+      emitDataHydrated48({source:"cache",error:String(error?.message||error)});
       return {configured:true,authenticated:true,source:"cache",error};
     }
   }
@@ -786,6 +799,7 @@
       const result=await request(table,{method,query,body,headers:{Prefer:prefer},returnMinimal:operation !== "upsert"});
       if(operation === "upsert"&&(!Array.isArray(result)||result.length!==1||result[0]?.id!=="global"))throw new Error("El upsert de cumplimiento no devolvi\u00f3 exactamente la fila global.");
       emitStatus("synced","Guardado y sincronizado.");
+      emitEntitySynced48({entity,operation,id,workId,clientMutationId});
       return {success:true,pending:false,clientMutationId,row:operation === "upsert" ? result[0] : null};
     } catch(error) {
       if (isPermissionSyncError(error)) { emitStatus("error","No tienes autorizaci\u00f3n para sincronizar esta operaci\u00f3n."); throw error; }
@@ -1259,7 +1273,7 @@
   });
 
   global.addEventListener("online", () => {
-    if (currentSession && configured) flushEntityMutations().then(result=>global.dispatchEvent(new CustomEvent("gvc:entity-mutations-flushed",{detail:result}))).catch(error=>console.warn("Sincronización de cambios pendientes.",error));
+    if (currentSession && configured) flushEntityMutations().then(result=>{global.dispatchEvent(new CustomEvent("gvc:entity-mutations-flushed",{detail:{...result,runtime:RUNTIME_VERSION48}}));global.dispatchEvent(new CustomEvent("gvc:system-cache-updated",{detail:{source:"reconnect",runtime:RUNTIME_VERSION48}}));}).catch(error=>console.warn("Sincronización de cambios pendientes.",error));
     if (currentSession && configured) prepareDailyReports().catch(error => console.warn("Sincronizaci\u00f3n de Registro Diario pendiente.", error));
   });
 

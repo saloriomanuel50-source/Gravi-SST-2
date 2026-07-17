@@ -22,7 +22,8 @@
     "test:compliance": "node tests/compliance-hotfix.test.js",
     "test:navigation": "node tests/executive-navigation.test.js && node tests/sidebar-navigation.test.js",
     "test:attendance": "node tests/attendance.test.js",
-    "test:stability": "node tests/sync-stability.test.js"
+    "test:stability": "node tests/sync-stability.test.js",
+    "test:runtime": "node tests/runtime-coherence.test.js"
   },
   "dependencies": {},
   "devDependencies": {}

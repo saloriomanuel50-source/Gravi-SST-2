@@ -77,5 +77,5 @@ assert.ok(system.indexOf("installNavigationReliability45();")<system.indexOf('co
 assert.ok(system.includes("safeInitStage45"),"La inicialización no es tolerante a fallos por módulo");
 assert.ok(system.includes("window.GraviNavigation=Object.freeze"),"Falta API de diagnóstico de navegación");
 assert.ok(dynamic.includes("GraviDynamicFormatsNavigation"),"Formatos dinámicos no exponen navegación confiable");
-assert.ok(sw.includes("gravi-sst-v2-shell-v47"),"Service worker no fuerza actualización de estabilidad v47");
+assert.ok(sw.includes("gravi-sst-v2-shell-v48"),"Service worker no fuerza actualización de runtime v48");
 console.log(`PASS sidebar-navigation: ${new Set(globalRoutes).size} rutas globales, ${new Set(workRoutes).size} rutas de obra y despacho funcional verificados.`);

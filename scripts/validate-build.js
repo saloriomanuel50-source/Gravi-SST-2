@@ -51,7 +51,9 @@ const requiredFiles = [
   ,"tests/permissions.test.js"
   ,"tests/attendance.test.js"
   ,"tests/sync-stability.test.js"
+  ,"tests/runtime-coherence.test.js"
   ,"docs/SINCRONIZACION_ESTABLE_V47.md"
+  ,"docs/ESTABILIDAD_RUNTIME_V48.md"
 ];
 
 function fail(message) {
@@ -98,6 +100,7 @@ const expectedIndexReferences = [
   "./src/styles/print-documents.css?v=35",
   "./src/supabase.js",
   "./src/bootstrap.js",
+  "./src/pwa.js?v=2026-07-17-runtime-coherence-v48",
   "./assets/gravi-sst-logo-dark.png",
   "./manifest.json"
 ];
@@ -106,7 +109,7 @@ for (const reference of expectedIndexReferences) {
 }
 
 const bootstrap = read("src/bootstrap.js");
-for (const reference of ["./src/print/print-manager.js?v=35", "./src/app.js?v=2026-07-13-permissions-v38", "./src/corporate-documents.js", "./src/extensions.js?v=2", "./src/executive-dashboard.js?v=2026-07-17-sidebar-navigation-v45", "./src/system.js?v=2026-07-17-sync-stability-v47", "./src/offline-evidence-queue.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-manager.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-sync-coordinator.js?v=2026-07-15-capture-evidence-v42", "./src/legacy-capture-adapter.js?v=2026-07-15-capture-evidence-v42", "./src/preventive-observations.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-gallery.js?v=2026-07-15-capture-evidence-v42", "./src/work-permits.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-relations.js?v=2026-07-15-capture-evidence-v42", "./src/capture-center.js?v=2026-07-15-capture-evidence-v42", "./src/pwa.js"]) {
+for (const reference of ["./src/print/print-manager.js?v=35", "./src/app.js?v=2026-07-13-permissions-v38", "./src/corporate-documents.js", "./src/extensions.js?v=2", "./src/executive-dashboard.js?v=2026-07-17-sidebar-navigation-v45", "./src/system.js?v=2026-07-17-runtime-coherence-v48", "./src/offline-evidence-queue.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-manager.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-sync-coordinator.js?v=2026-07-15-capture-evidence-v42", "./src/legacy-capture-adapter.js?v=2026-07-15-capture-evidence-v42", "./src/preventive-observations.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-gallery.js?v=2026-07-15-capture-evidence-v42", "./src/work-permits.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-relations.js?v=2026-07-15-capture-evidence-v42", "./src/capture-center.js?v=2026-07-15-capture-evidence-v42"]) {
   if (!bootstrap.includes(reference)) fail(`bootstrap.js no carga ${reference}`);
 }
 if (bootstrap.indexOf("./src/executive-dashboard.js") > bootstrap.indexOf("./src/system.js")) fail("bootstrap.js debe cargar executive-dashboard.js antes de system.js");
@@ -124,7 +127,7 @@ const evidenceManager = read("src/evidence-manager.js");
 for (const api of ["selectFiles","prepareImages","renderPreview","removePreparedFile","saveOffline","uploadPending","getSignedUrl","openViewer","listByRecord","retry","getAvailableCount"]) if (!evidenceManager.includes(api)) fail(`evidence-manager.js no expone ${api}`);
 
 const serviceWorker = read("service-worker.js");
-for (const reference of ["./src/app.js?v=2026-07-13-permissions-v38", "./src/supabase.js?v=2026-07-17-sync-stability-v47", "./src/repositories.js?v=2026-07-15-capture-evidence-v42", "./src/bootstrap.js?v=2026-07-17-sync-stability-v47", "./src/print/print-manager.js?v=35", "./src/system.js?v=2026-07-17-sync-stability-v47", "./src/executive-dashboard.js?v=2026-07-17-sidebar-navigation-v45", "./src/offline-evidence-queue.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-manager.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-sync-coordinator.js?v=2026-07-15-capture-evidence-v42", "./src/legacy-capture-adapter.js?v=2026-07-15-capture-evidence-v42", "./src/preventive-observations.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-gallery.js?v=2026-07-15-capture-evidence-v42", "./src/work-permits.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-relations.js?v=2026-07-15-capture-evidence-v42", "./src/capture-center.js?v=2026-07-15-capture-evidence-v42", "./src/styles/capture-center.css?v=2026-07-15-capture-v42", "./src/styles/evidence-gallery.css?v=2026-07-15-capture-v42", "./src/styles/executive-dashboard.css?v=2026-07-17-sidebar-navigation-v45", "./src/styles/print-documents.css?v=35", "./src/styles/phase5-2.css?v=18", "./assets/gravi-sst-logo-dark.png", "./assets/gravi-sst-login-panel.png", "./assets/gravi-sst-splash.png", "./assets/pwa-icon-192.png"]) {
+for (const reference of ["./src/app.js?v=2026-07-13-permissions-v38", "./src/supabase.js?v=2026-07-17-runtime-coherence-v48", "./src/repositories.js?v=2026-07-15-capture-evidence-v42", "./src/bootstrap.js?v=2026-07-17-runtime-coherence-v48", "./src/print/print-manager.js?v=35", "./src/system.js?v=2026-07-17-runtime-coherence-v48", "./src/executive-dashboard.js?v=2026-07-17-sidebar-navigation-v45", "./src/offline-evidence-queue.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-manager.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-sync-coordinator.js?v=2026-07-15-capture-evidence-v42", "./src/legacy-capture-adapter.js?v=2026-07-15-capture-evidence-v42", "./src/preventive-observations.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-gallery.js?v=2026-07-15-capture-evidence-v42", "./src/work-permits.js?v=2026-07-15-capture-evidence-v42", "./src/evidence-relations.js?v=2026-07-15-capture-evidence-v42", "./src/capture-center.js?v=2026-07-15-capture-evidence-v42", "./src/styles/capture-center.css?v=2026-07-15-capture-v42", "./src/styles/evidence-gallery.css?v=2026-07-15-capture-v42", "./src/styles/executive-dashboard.css?v=2026-07-17-sidebar-navigation-v45", "./src/styles/print-documents.css?v=35", "./src/styles/phase5-2.css?v=18", "./assets/gravi-sst-logo-dark.png", "./assets/gravi-sst-login-panel.png", "./assets/gravi-sst-splash.png", "./assets/pwa-icon-192.png"]) {
   if (!serviceWorker.includes(reference)) fail(`service-worker.js no precachea ${reference}`);
 }
 
@@ -136,17 +139,22 @@ for (const rule of [".auth-screen [hidden]", "body.auth-login #setPasswordForm",
 const inviteApi = read("api/invite-user.js");
 if (!inviteApi.includes("profileResponse.ok")) fail("api/invite-user.js no valida profileResponse.ok");
 
-for (const reference of ["window.GRAVI_BUILD_VERSION = \"2026-07-17-sync-stability-v47\"", "./src/styles/phase5-2.css?v=18", "./src/styles/executive-dashboard.css?v=2026-07-17-sidebar-navigation-v45", "./src/styles/capture-center.css?v=2026-07-15-capture-v42", "./src/styles/evidence-gallery.css?v=2026-07-15-capture-v42", "./src/bootstrap.js?v=2026-07-17-sync-stability-v47", "./src/supabase.js?v=2026-07-17-sync-stability-v47", "./src/repositories.js?v=2026-07-15-capture-evidence-v42"]) {
+for (const reference of ["window.GRAVI_BUILD_VERSION = \"2026-07-17-runtime-coherence-v48\"", "./src/styles/phase5-2.css?v=18", "./src/styles/executive-dashboard.css?v=2026-07-17-sidebar-navigation-v45", "./src/styles/capture-center.css?v=2026-07-15-capture-v42", "./src/styles/evidence-gallery.css?v=2026-07-15-capture-v42", "./src/bootstrap.js?v=2026-07-17-runtime-coherence-v48", "./src/supabase.js?v=2026-07-17-runtime-coherence-v48", "./src/repositories.js?v=2026-07-15-capture-evidence-v42"]) {
   if (!index.includes(reference)) fail(`index.html no usa la version coordinada ${reference}`);
 }
-if (!serviceWorker.includes('const CACHE_NAME = "gravi-sst-v2-shell-v47"')) fail("service-worker.js no usa cache de estabilidad v47");
+if (!serviceWorker.includes('const CACHE_NAME = "gravi-sst-v2-shell-v48"')) fail("service-worker.js no usa cache de runtime v48");
 
 
-if (bootstrap.includes("attendance-state.js")) fail("bootstrap.js no debe depender de attendance-state.js en v47");
+if (bootstrap.includes("attendance-state.js")) fail("bootstrap.js no debe depender de attendance-state.js en v48");
 if (system.includes("window.GraviAttendance")) fail("system.js conserva dependencia externa frágil de asistencia");
-for (const contract of ["applyAttendanceChange47", "persistLocalData(\"attendance\")", "attendanceSyncChains47", "gvc:local-data-updated"]) if (!system.includes(contract)) fail(`system.js no cumple estabilidad v47: ${contract}`);
+for (const contract of ["applyAttendanceChange48", "persistLocalData(\"attendance\")", "attendanceSyncChains48", "gvc:local-data-updated"]) if (!system.includes(contract)) fail(`system.js no cumple runtime v48: ${contract}`);
 const supabase = read("src/supabase.js");
-for (const contract of ["queueEntityMutation", "pendingEntityMutations", "gvc:entity-mutations-flushed"]) if (!supabase.includes(contract)) fail(`supabase.js no cumple cola estable v47: ${contract}`);
+for (const contract of ["queueEntityMutation", "pendingEntityMutations", "gvc:entity-mutations-flushed"]) if (!supabase.includes(contract)) fail(`supabase.js no cumple cola estable v48: ${contract}`);
+
+for (const contract of ["normalizeSystemData48","refreshSystemDataFromStorage48","gvc:data-hydrated","scheduleAttendanceRender48"]) if (!system.includes(contract)) fail(`system.js no cumple coherencia v48: ${contract}`);
+for (const contract of ["emitDataHydrated48","emitEntitySynced48"]) if (!supabase.includes(contract)) fail(`supabase.js no emite contrato v48: ${contract}`);
+const pwaRuntime = read("src/pwa.js");
+for (const contract of ["controllerchange","updateViaCache:\"none\"","registration.update()","SKIP_WAITING"]) if (!pwaRuntime.includes(contract)) fail(`pwa.js no cumple actualización v48: ${contract}`);
 
 const releaseV38 = read("database/permissions_release_v38.sql");
 const verifyV38 = read("database/verify_permissions_v38.sql");
