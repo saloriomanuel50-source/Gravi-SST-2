@@ -71,7 +71,7 @@ assert.match(supabase, /registerAttendance:async item=>\{let exists=Boolean\(ite
 assert.match(css, /attendance-worker-card\.is-saving/);
 assert.match(css, /@media\(max-width:900px\)/);
 assert.match(css, /@media\(max-width:600px\)/);
-assert.match(serviceWorker, /const CACHE_NAME = "gravi-sst-v2-shell-v48"/);
+assert.match(serviceWorker, /const CACHE_NAME = "gravi-sst-v2-shell-v49"/);
 assert.doesNotMatch(serviceWorker, /attendance-state\.js/);
 
 console.log("PASS attendance-v48: inicio seguro, UI optimista, contadores, concurrencia, cola offline, hidratación protegida y caché coordinada verificados.");

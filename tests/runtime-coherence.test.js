@@ -34,7 +34,7 @@ for(const migration of ["migrateExtendedData","migratePhase2Data","migratePhase3
 
 for(const contract of ["emitDataHydrated48","emitEntitySynced48",'new CustomEvent("gvc:data-hydrated"','new CustomEvent("gvc:entity-synced"']) assert.ok(supabase.includes(contract),`Falta evento Supabase: ${contract}`);
 for(const contract of ["controllerchange",'updateViaCache:"none"',"SKIP_WAITING","registration.update()","gravi-sw-last-controller"]) assert.ok(pwa.includes(contract),`Falta ciclo PWA: ${contract}`);
-for(const contract of ['gravi-sst-v2-shell-v48','cache:"no-store"','event.data?.type === "SKIP_WAITING"']) assert.ok(sw.includes(contract),`Falta contrato SW: ${contract}`);
+for(const contract of ['gravi-sst-v2-shell-v49','cache:"no-store"','event.data?.type === "SKIP_WAITING"']) assert.ok(sw.includes(contract),`Falta contrato SW: ${contract}`);
 assert.ok(index.includes('./src/pwa.js?v=2026-07-17-runtime-coherence-v48'));
 assert.doesNotMatch(bootstrap,/src\/pwa\.js/);
 console.log("PASS runtime-coherence-v48: actualización automática, puente de datos, recuperación de módulos y reducción de sincronización de arranque verificados.");

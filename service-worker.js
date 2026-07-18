@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_NAME = "gravi-sst-v2-shell-v48";
+const CACHE_NAME = "gravi-sst-v2-shell-v49";
 const ACTIVE_CACHE_NAME = CACHE_NAME;
 const APP_SHELL = [
   "./",
@@ -24,11 +24,11 @@ const APP_SHELL = [
   "./src/app.js?v=2026-07-13-permissions-v38",
   "./src/supabase.js?v=2026-07-17-runtime-coherence-v48",
   "./src/repositories.js?v=2026-07-15-capture-evidence-v42",
-  "./src/bootstrap.js?v=2026-07-17-runtime-coherence-v48",
+  "./src/bootstrap.js?v=2026-07-18-incident-submit-v49",
   "./src/print/print-manager.js?v=35",
   "./src/corporate-documents.js?v=35",
   "./src/extensions.js?v=2026-07-07-hotfix-charset",
-  "./src/system.js?v=2026-07-17-runtime-coherence-v48",
+  "./src/system.js?v=2026-07-18-incident-submit-v49",
   "./src/executive-dashboard.js?v=2026-07-17-sidebar-navigation-v45",
   "./src/offline-evidence-queue.js?v=2026-07-15-capture-evidence-v42",
   "./src/evidence-manager.js?v=2026-07-15-capture-evidence-v42",

@@ -15,19 +15,20 @@ const sw = read("service-worker.js");
 const pwa = read("src/pwa.js");
 
 const version = "2026-07-17-runtime-coherence-v48";
+const incidentVersion = "2026-07-18-incident-submit-v49";
 for (const reference of [
   `window.GRAVI_BUILD_VERSION = "${version}"`,
   `./src/pwa.js?v=${version}`,
   `./src/supabase.js?v=${version}`,
-  `./src/bootstrap.js?v=${version}`
+  `./src/bootstrap.js?v=${incidentVersion}`
 ]) assert.ok(index.includes(reference), `index.html no contiene ${reference}`);
-assert.ok(bootstrap.includes(`./src/system.js?v=${version}`));
-assert.ok(sw.includes(`./src/system.js?v=${version}`));
+assert.ok(bootstrap.includes(`./src/system.js?v=${incidentVersion}`));
+assert.ok(sw.includes(`./src/system.js?v=${incidentVersion}`));
 assert.ok(sw.includes(`./src/supabase.js?v=${version}`));
-assert.ok(sw.includes(`./src/bootstrap.js?v=${version}`));
+assert.ok(sw.includes(`./src/bootstrap.js?v=${incidentVersion}`));
 assert.ok(sw.includes(`./src/pwa.js?v=${version}`));
 
-assert.match(sw, /const CACHE_NAME = "gravi-sst-v2-shell-v48";/);
+assert.match(sw, /const CACHE_NAME = "gravi-sst-v2-shell-v49";/);
 assert.match(sw, /keys\.filter\(key => key !== ACTIVE_CACHE_NAME\)/);
 assert.match(sw, /request\.mode === "navigate" \? new Request\(request, \{cache:"no-store"\}\)/);
 assert.match(sw, /event\.data\?\.type === "SKIP_WAITING"/);

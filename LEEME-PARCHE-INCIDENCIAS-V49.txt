@@ -1,0 +1,19 @@
+GRAVI SST — PARCHE DE ENVÍO DE INCIDENCIAS V49
+
+Causa corregida:
+- El asistente permitía avanzar sin validar la fecha y hora.
+- La pantalla de revisión omitía ese campo y mostraba "Listo para enviar".
+- Al enviar, el navegador intentaba validar un campo requerido dentro de un paso oculto; por eso parecía que el botón no hacía nada.
+
+Aplicación:
+1. Copiar el contenido interno del parche en C:\dev\Gravi-SST-2.
+2. Reemplazar los archivos existentes.
+3. Ejecutar:
+   npm run build
+   npm run test:incidents
+   npm run test:runtime
+   npm run test:navigation
+4. Probar localmente con vercel dev.
+5. Publicar solo después de confirmar el envío.
+
+Caché PWA: gravi-sst-v2-shell-v49

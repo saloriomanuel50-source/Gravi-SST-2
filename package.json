@@ -23,7 +23,8 @@
     "test:navigation": "node tests/executive-navigation.test.js && node tests/sidebar-navigation.test.js",
     "test:attendance": "node tests/attendance.test.js",
     "test:stability": "node tests/sync-stability.test.js",
-    "test:runtime": "node tests/runtime-coherence.test.js"
+    "test:runtime": "node tests/runtime-coherence.test.js",
+    "test:incidents": "node tests/incident-report.test.js"
   },
   "dependencies": {},
   "devDependencies": {}
