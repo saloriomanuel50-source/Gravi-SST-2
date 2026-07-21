@@ -69,10 +69,11 @@
 
   function waitForImages(printDocument) {
     return Promise.all(Array.from(printDocument.images).map(image => {
-      if (image.complete) return image.decode?.().catch(() => undefined) || Promise.resolve();
+      if (image.complete && image.naturalWidth > 0) return image.decode?.().catch(() => undefined) || Promise.resolve();
       return new Promise(resolve => {
-        image.addEventListener("load", resolve, { once: true });
-        image.addEventListener("error", resolve, { once: true });
+        const timer=setTimeout(resolve,12000),done=()=>{clearTimeout(timer);resolve();};
+        image.addEventListener("load", done, { once: true });
+        image.addEventListener("error", done, { once: true });
       });
     }));
   }
@@ -80,6 +81,9 @@
   async function printDocument(options = {}) {
     const element = typeof options.element === "string" ? document.querySelector(options.element) : options.element;
     if (!(element instanceof Element) || !element.innerHTML.trim()) throw new Error("No hay un documento institucional para imprimir.");
+    await (global.GraviReportEvidenceReady || Promise.resolve());
+    const unresolved=[...element.querySelectorAll(".evidence-report-grid img")].filter(image=>!image.complete||image.naturalWidth===0);
+    if(unresolved.length)throw new Error("Las evidencias del reporte todavía no están listas para impresión.");
     const config = configFor(options.documentType, options.orientation || element.dataset.printOrientation);
     const title = String(options.title || "documento-gravi-sst").replace(/[<>:"/\\|?*]+/g, "-");
     const printWindow = global.open("", "_blank");

@@ -66,7 +66,8 @@
   }
 
   function writeJson(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
+    try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+    catch(error) { console.error(`[GraviSupabase:localStorage:${key}]`, error); return false; }
   }
 
   function clone(value) {
@@ -771,7 +772,7 @@
 
   function queueEntityMutation(mutation) {
     const pending=mutationStore();
-    if(mutation.entity==="attendance")pending.mutations=pending.mutations.filter(item=>!(item.entity==="attendance"&&item.id===mutation.id&&item.userId===mutation.userId));
+    if(mutation.entity==="attendance"||mutation.entity==="records")pending.mutations=pending.mutations.filter(item=>!(item.entity===mutation.entity&&item.id===mutation.id&&item.userId===mutation.userId));
     pending.mutations.push(mutation);
     writeJson(PENDING_KEY,pending);
   }

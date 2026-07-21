@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_NAME = "gravi-sst-v2-shell-v49";
+const CACHE_NAME = "gravi-sst-v2-shell-v51";
 const ACTIVE_CACHE_NAME = CACHE_NAME;
 const APP_SHELL = [
   "./",
@@ -21,18 +21,20 @@ const APP_SHELL = [
   "./src/styles/evidence-gallery.css?v=2026-07-15-capture-v42",
   "./src/styles/signatures.css?v=1",
   "./src/styles/print-documents.css?v=35",
-  "./src/app.js?v=2026-07-13-permissions-v38",
+  "./src/app.js?v=2026-07-18-evidence-v51",
   "./src/supabase.js?v=2026-07-17-runtime-coherence-v48",
   "./src/repositories.js?v=2026-07-15-capture-evidence-v42",
-  "./src/bootstrap.js?v=2026-07-18-incident-submit-v49",
-  "./src/print/print-manager.js?v=35",
+  "./src/bootstrap.js?v=2026-07-18-evidence-v51",
+  "./src/print/print-manager.js?v=2026-07-18-evidence-v51",
   "./src/corporate-documents.js?v=35",
   "./src/extensions.js?v=2026-07-07-hotfix-charset",
-  "./src/system.js?v=2026-07-18-incident-submit-v49",
+  "./src/system.js?v=2026-07-18-evidence-v51",
   "./src/executive-dashboard.js?v=2026-07-17-sidebar-navigation-v45",
-  "./src/offline-evidence-queue.js?v=2026-07-15-capture-evidence-v42",
-  "./src/evidence-manager.js?v=2026-07-15-capture-evidence-v42",
-  "./src/evidence-sync-coordinator.js?v=2026-07-15-capture-evidence-v42",
+  "./src/offline-evidence-queue.js?v=2026-07-18-evidence-v51",
+  "./src/evidence-manager.js?v=2026-07-18-evidence-v51",
+  "./src/evidence-resolver.js?v=2026-07-18-evidence-v51",
+  "./src/incident-storage.js?v=2026-07-18-evidence-v51",
+  "./src/evidence-sync-coordinator.js?v=2026-07-18-evidence-v51",
   "./src/legacy-capture-adapter.js?v=2026-07-15-capture-evidence-v42",
   "./src/preventive-observations.js?v=2026-07-15-capture-evidence-v42",
   "./src/evidence-gallery.js?v=2026-07-15-capture-evidence-v42",
@@ -44,7 +46,7 @@ const APP_SHELL = [
   "./src/dynamic-formats-controller.js?v=2026-07-07-hotfix-charset",
   "./src/dynamic-formats-bootstrap.js?v=2026-07-07-hotfix-charset",
   "./src/dynamic-formats-ui.html?v=2026-07-07-hotfix-charset",
-  "./src/pwa.js?v=2026-07-17-runtime-coherence-v48",
+  "./src/pwa.js?v=2026-07-18-evidence-v51",
   "./assets/gravi-sst-logo-dark.png",
   "./assets/gravi-sst-login-panel.png",
   "./assets/gravi-sst-splash.png",
@@ -79,6 +81,7 @@ self.addEventListener("fetch", event => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/rest/") || url.pathname.startsWith("/storage/") || request.headers.has("authorization")) return;
 
   const networkRequest = request.mode === "navigate" ? new Request(request, {cache:"no-store"}) : request;
 

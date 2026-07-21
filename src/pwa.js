@@ -1,7 +1,7 @@
 (function registerGraviServiceWorker(){
   "use strict";
   if (!("serviceWorker" in navigator)) return;
-  const VERSION="2026-07-17-runtime-coherence-v48";
+  const VERSION="2026-07-18-evidence-v51";
   const RELOAD_KEY="gravi-sw-last-controller";
   const hadController=Boolean(navigator.serviceWorker.controller);
   let reloadStarted=false;

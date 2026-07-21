@@ -1,7 +1,7 @@
 (async function startGraviApplication(){
   "use strict";
 
-  const scripts = ["./src/print/print-manager.js?v=35","./src/app.js?v=2026-07-13-permissions-v38","./src/corporate-documents.js","./src/extensions.js?v=2","./src/executive-dashboard.js?v=2026-07-17-sidebar-navigation-v45","./src/system.js?v=2026-07-18-incident-submit-v49","./src/offline-evidence-queue.js?v=2026-07-15-capture-evidence-v42","./src/evidence-manager.js?v=2026-07-15-capture-evidence-v42","./src/evidence-sync-coordinator.js?v=2026-07-15-capture-evidence-v42","./src/legacy-capture-adapter.js?v=2026-07-15-capture-evidence-v42","./src/preventive-observations.js?v=2026-07-15-capture-evidence-v42","./src/evidence-gallery.js?v=2026-07-15-capture-evidence-v42","./src/signatures.js?v=2026-07-13-permissions-v38","./src/work-permits.js?v=2026-07-15-capture-evidence-v42","./src/evidence-relations.js?v=2026-07-15-capture-evidence-v42","./src/capture-center.js?v=2026-07-15-capture-evidence-v42"];
+  const scripts = ["./src/print/print-manager.js?v=2026-07-18-evidence-v51","./src/offline-evidence-queue.js?v=2026-07-18-evidence-v51","./src/evidence-manager.js?v=2026-07-18-evidence-v51","./src/evidence-resolver.js?v=2026-07-18-evidence-v51","./src/incident-storage.js?v=2026-07-18-evidence-v51","./src/app.js?v=2026-07-18-evidence-v51","./src/corporate-documents.js","./src/extensions.js?v=2","./src/executive-dashboard.js?v=2026-07-17-sidebar-navigation-v45","./src/system.js?v=2026-07-18-evidence-v51","./src/evidence-sync-coordinator.js?v=2026-07-18-evidence-v51","./src/legacy-capture-adapter.js?v=2026-07-15-capture-evidence-v42","./src/preventive-observations.js?v=2026-07-15-capture-evidence-v42","./src/evidence-gallery.js?v=2026-07-15-capture-evidence-v42","./src/signatures.js?v=2026-07-13-permissions-v38","./src/work-permits.js?v=2026-07-15-capture-evidence-v42","./src/evidence-relations.js?v=2026-07-15-capture-evidence-v42","./src/capture-center.js?v=2026-07-15-capture-evidence-v42"];
   const loginForm = document.querySelector("#loginForm");
   const authMessage = document.querySelector("#authMessage");
   const setPasswordForm = document.querySelector("#setPasswordForm");
@@ -121,6 +121,7 @@
     installMobileNavigation();
     document.body.classList.remove("app-loading");
     window.dispatchEvent(new CustomEvent("gvc:auth-ready", {detail:{user,profile}}));
+    window.GraviIncidentStorage?.migrateLegacy?.().catch(error=>console.error("[GraviIncidentStorage:migrate]",error));
   }
 
   function showAuthLoading() {

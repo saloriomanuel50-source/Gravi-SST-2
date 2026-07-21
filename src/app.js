@@ -76,8 +76,10 @@ const form = $("#inspectionForm");
 const firstAidForm = $("#firstAidForm");
 const equipmentForm = $("#equipmentForm");
 const incidentForm = $("#incidentForm");
+let activeReportEvidenceOwner="";
 
 function showView(id) {
+  if(id!=="reportView"&&activeReportEvidenceOwner){window.GraviEvidenceResolver?.release?.(activeReportEvidenceOwner);activeReportEvidenceOwner="";}
   $$(".view").forEach(v => v.classList.toggle("active", v.id === id));
   window.scrollTo({ top: 0, behavior: "smooth" });
   if (id === "homeView") renderRecent();
@@ -97,15 +99,19 @@ const MAX_EVIDENCE_FILES = 8;
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 function evidenceItem(item = {}) {
   if (typeof item === "string") return { id: crypto.randomUUID(), src:item, comment:"", syncStatus:"local", createdAt:new Date().toISOString() };
-  return { id:item.id || crypto.randomUUID(), src:item.src || item.dataUrl || item.url || "", comment:item.comment || "", syncStatus:item.syncStatus || (item.storagePath ? "synced" : "local"), storagePath:item.storagePath || "", storageUrl:item.storageUrl || "", createdAt:item.createdAt || new Date().toISOString(), updatedAt:item.updatedAt || "" };
+  if ((typeof Blob !== "undefined" && item instanceof Blob) || (typeof File !== "undefined" && item instanceof File)) return { id:crypto.randomUUID(), clientUuid:"", blob:item, src:"", comment:"", syncStatus:"local", createdAt:new Date().toISOString() };
+  return { ...item, id:item.id || item.clientUuid || crypto.randomUUID(), clientUuid:item.clientUuid || item.id || "", src:item.src || item.objectUrl || item.dataUrl || item.url || "", comment:item.comment || item.caption || "", syncStatus:item.syncStatus || item.status || (item.storagePath ? "synced" : "local"), storagePath:item.storagePath || "", storageUrl:item.storageUrl || "", createdAt:item.createdAt || new Date().toISOString(), updatedAt:item.updatedAt || "" };
 }
-function normalizeEvidenceList(list = []) { return list.map(evidenceItem).filter(item => item.src); }
-function evidenceSrc(item) { return typeof item === "string" ? item : item?.src || item?.storageUrl || ""; }
+function normalizeEvidenceList(list = []) { return list.map(evidenceItem).filter(item => evidenceSrc(item) || item.blob || item.clientUuid || item.storagePath || item.storage_path || item.publicUrl || item.public_url || item.signedUrl || item.signed_url || item.indexedDbRef || item.reportId || item.report_id); }
+function evidenceSrc(item) { return typeof item === "string" ? item : item?.src || item?.objectUrl || item?.storageUrl || ""; }
 function evidenceComment(item) { return typeof item === "string" ? "" : item?.comment || ""; }
 function evidenceStatus(item) { const value=typeof item === "string" ? "local" : item?.syncStatus || "local"; return value === "synced" ? "Sincronizada" : value === "error" ? "Pendiente de reintento" : "Pendiente de sincronizar"; }
+function reportEvidenceState(message,ready=false){const toolbar=$("#reportView .report-toolbar"),button=$("#printButton");if(toolbar){const strong=$("strong",toolbar),small=$("small",toolbar);if(strong)strong.textContent=ready?"Reporte listo":"Cargando evidencia…";if(small)small.textContent=message;}if(button)button.disabled=!ready;}
+function loadReportImage(url,alt){return new Promise((resolve,reject)=>{const image=new Image(),timer=setTimeout(()=>{image.src="";reject(new Error("Tiempo de carga agotado."));},12000);image.alt=alt;image.decoding="async";image.onload=()=>{clearTimeout(timer);if(image.naturalWidth>0)resolve(image);else reject(new Error("La imagen no contiene dimensiones válidas."));};image.onerror=()=>{clearTimeout(timer);reject(new Error("No fue posible decodificar la imagen."));};image.src=url;});}
+async function hydrateReportEvidence(items,token,owner,reportId){const section=$(`[data-report-evidence="${token}"]`),list=normalizeEvidenceList(items);if(!section)return[];const results=await Promise.allSettled(list.map(async(item,index)=>{const figure=$(`[data-report-evidence-item="${index}"]`,section),placeholder=$("[data-evidence-placeholder]",figure);const resolved=await window.GraviEvidenceResolver.resolveEvidenceSource(item,{owner,reportId});if(!resolved.url){placeholder.className="report-evidence-fallback";placeholder.innerHTML=`<b>Evidencia no disponible</b><small>${escapeHtml(resolved.reason||"referencia no encontrada")}</small>`;return{ok:false,reason:resolved.reason};}try{const image=await loadReportImage(resolved.url,`Evidencia ${index+1}`);placeholder.replaceWith(image);return{ok:true,url:resolved.url,kind:resolved.kind,naturalWidth:image.naturalWidth};}catch(error){console.error(`[GRAVI Report:evidence:${index}]`,error);placeholder.className="report-evidence-fallback";placeholder.innerHTML=`<b>Evidencia no disponible</b><small>${escapeHtml(item.syncStatus==="pending"?"archivo pendiente de sincronización":resolved.kind==="storage"?"error de descarga":"formato no compatible")}</small>`;return{ok:false,reason:error.message};}}));const visible=results.filter(result=>result.status==="fulfilled"&&result.value.ok).length;reportEvidenceState(visible===list.length?"Todas las evidencias están disponibles.":`${visible} de ${list.length} evidencias disponibles.`,true);window.dispatchEvent(new CustomEvent("gvc:report-evidence-ready",{detail:{reportId,visible,total:list.length}}));return results;}
 function evidenceReportMarkup(items = []) {
   const list = normalizeEvidenceList(items);
-  return list.length ? `<div class="report-band">Apoyo Visual</div><div class="report-evidence evidence-report-grid">${list.map((item,index)=>`<figure><img src="${evidenceSrc(item)}" alt="Evidencia ${index+1}"><figcaption>${escapeHtml(evidenceComment(item) || `Evidencia ${index+1}`)}</figcaption></figure>`).join("")}</div>` : "";
+  if(!list.length){window.GraviReportEvidenceReady=Promise.resolve([]);return"";}const token=crypto.randomUUID(),owner=`report:${currentRecord?.id||token}`,reportId=currentRecord?.id||"";if(activeReportEvidenceOwner&&activeReportEvidenceOwner!==owner)window.GraviEvidenceResolver?.release?.(activeReportEvidenceOwner);activeReportEvidenceOwner=owner;reportEvidenceState(`Resolviendo ${list.length} evidencia(s)…`,false);window.GraviReportEvidenceReady=new Promise(resolve=>setTimeout(()=>hydrateReportEvidence(list,token,owner,reportId).then(resolve),0));return `<div class="report-band">Apoyo Visual</div><div class="report-evidence evidence-report-grid" data-report-evidence="${token}">${list.map((item,index)=>`<figure data-report-evidence-item="${index}"><div class="report-evidence-loading" data-evidence-placeholder>Cargando evidencia…</div><figcaption>${escapeHtml(evidenceComment(item) || `Evidencia ${index+1}`)}</figcaption></figure>`).join("")}</div>`;
 }
 function renderEvidenceList(list, selector, removeAttr, saveFn) {
   const normalized = normalizeEvidenceList(list);
@@ -128,8 +134,10 @@ function prepareEvidenceInputs() {
 async function createEvidenceFromFile(file) {
   if (!file.type.startsWith("image/")) throw new Error(`${file.name}: selecciona únicamente imágenes.`);
   if (file.size > MAX_IMAGE_BYTES) throw new Error(`${file.name}: supera el límite de 12 MB.`);
-  const src = await resizeImage(file, {max:1600, quality:.72});
-  return {id:crypto.randomUUID(),src,comment:"",syncStatus:"local",createdAt:new Date().toISOString(),originalName:file.name,originalSize:file.size,compressedSize:Math.round(src.length * .75)};
+  const result = await window.GraviEvidenceManager.prepareImages([file], {maxFiles:1});
+  if (!result.prepared.length) throw new Error(result.rejected[0]?.message || `${file.name}: no se pudo preparar.`);
+  const prepared=result.prepared[0];
+  return {...prepared,id:prepared.clientUuid,src:prepared.objectUrl,comment:"",syncStatus:"local",compressedSize:prepared.sizeBytes};
 }
 async function addEvidenceFiles(event, list, limit, renderFn, saveFn) {
   const files = [...event.target.files];
@@ -211,8 +219,8 @@ function applyData(data) {
   evidence = normalizeEvidenceList(data.evidence || []); renderEvidence();
   $("#draftStatus").textContent = data.status || "Borrador";
 }
-function saveDraft(silent = false) {
-  const data = collectData("Borrador"); localStorage.setItem(STORAGE_DRAFT, JSON.stringify(data)); currentRecord = data;
+async function saveDraft(silent = false) {
+  const data = collectData("Borrador"); await window.GraviIncidentStorage.saveArtifact(STORAGE_DRAFT,data); currentRecord = data;
   $("#draftStatus").textContent = "Borrador guardado"; if (!silent) toast("Borrador guardado en este dispositivo.");
 }
 function renderEvidence() {
@@ -294,9 +302,9 @@ function applyFirstAidData(data) {
   firstAidEvidence = normalizeEvidenceList(data.evidence || []); renderFirstAidEvidence();
   $("#firstAidStatus").textContent = data.status || "Borrador";
 }
-function saveFirstAidDraft(silent = false) {
+async function saveFirstAidDraft(silent = false) {
   const data = collectFirstAidData("Borrador"); currentRecord = data;
-  localStorage.setItem(STORAGE_FIRST_AID_DRAFT, JSON.stringify(data));
+  await window.GraviIncidentStorage.saveArtifact(STORAGE_FIRST_AID_DRAFT,data);
   $("#firstAidStatus").textContent = "Borrador guardado";
   if (!silent) toast("Borrador de botiquín guardado en este dispositivo.");
 }
@@ -353,8 +361,8 @@ function collectEquipmentData(status = "Borrador") {
     date:fields.date,location:fields.contractor,checks:$$('[data-equipment-check]',equipmentForm).map((row,index)=>({label:config.criteria[index],result:row.querySelector('input:checked')?.value || "",notes:$(".equipment-note",row).value})),
     ppe:$$('[data-ppe-index]:checked',equipmentForm).map(input=>input.value),generalNotes:fd.get("generalNotes")||"",safetyName:fd.get("safetyName")||"",residentName:fd.get("residentName")||"",endTime:fd.get("endTime")||"",evidence:normalizeEvidenceList(equipmentEvidence)};
 }
-function saveEquipmentDraft(silent = false) {
-  const data = collectEquipmentData("Borrador"); currentRecord = data; localStorage.setItem(`gvc-${currentEquipmentType}-draft-v1-${WORK_SCOPE}`,JSON.stringify(data));
+async function saveEquipmentDraft(silent = false) {
+  const data = collectEquipmentData("Borrador"); currentRecord = data; await window.GraviIncidentStorage.saveArtifact(`gvc-${currentEquipmentType}-draft-v1-${WORK_SCOPE}`,data);
   $("#equipmentStatus").textContent = "Borrador guardado"; if(!silent) toast("Borrador de inspección guardado.");
 }
 function renderEquipmentEvidence() {
@@ -377,6 +385,7 @@ function openIncidentReport(data = null) {
   incidentForm.reset(); incidentEvidence = []; currentRecord = null;
   let stored = data; if (!stored) { try { stored = JSON.parse(localStorage.getItem(STORAGE_INCIDENT_DRAFT)); } catch { stored = null; } }
   applyIncidentData(stored || {type:"incident",folio:generateIncidentFolio(),evidence:[]});
+  if(!data&&window.GraviIncidentStorage)window.GraviIncidentStorage.loadDraft(STORAGE_INCIDENT_DRAFT).then(full=>{if(full)applyIncidentData(full);}).catch(error=>console.error("[GRAVI Incidencias] No fue posible recuperar el borrador.",error));
   const today = localDateISO(); incidentForm.elements.date.value ||= today; incidentForm.elements.emissionDate.value ||= today;
   toggleOtherIncidentType(); showView("incidentView");
 }
@@ -406,7 +415,7 @@ function collectIncidentData(status="Borrador") {
     probableCause:fd.get("probableCause")||"",immediateAction:fd.get("immediateAction")||"",preventiveMeasure:fd.get("preventiveMeasure")||"",observations:fd.get("observations")||"",accidentOccurred:fd.get("accidentOccurred")||"No",investigationId:currentRecord?.investigationId||"",
     workerName:fd.get("workerName")||"",contractorName:fd.get("contractorName")||"",safetyResidentName:fd.get("safetyResidentName")||"",siteManagerName:fd.get("siteManagerName")||"",evidence:normalizeEvidenceList(incidentEvidence)};
 }
-function saveIncidentDraft(silent=false){const data=collectIncidentData("Borrador");currentRecord=data;localStorage.setItem(STORAGE_INCIDENT_DRAFT,JSON.stringify(data));$("#incidentStatus").textContent="Borrador guardado";if(!silent)toast("Borrador del reporte diario guardado.");}
+async function saveIncidentDraft(silent=false){const data=collectIncidentData("Borrador");currentRecord=data;try{const saved=await window.GraviIncidentStorage.saveDraft(STORAGE_INCIDENT_DRAFT,data,{status:"draft"});$("#incidentStatus").textContent=saved.quotaFallback?"Borrador seguro en dispositivo":"Borrador guardado";if(!silent)toast(saved.quotaFallback?"No fue posible guardar el borrador en el almacenamiento rápido. Se conservó de forma segura.":"Borrador del reporte diario guardado.");}catch(error){console.error("[GRAVI Incidencias] No fue posible guardar el borrador.",error);$("#incidentStatus").textContent="Borrador en memoria";if(!silent)toast("No fue posible guardar el borrador ahora. Los datos capturados continúan visibles.");}return data;}
 function toggleOtherIncidentType(){const isOther=incidentForm.elements.incidentType?.value==="Otro";$("#otherIncidentTypeField").hidden=!isOther;incidentForm.elements.otherType.required=isOther;}
 function renderIncidentEvidence(){renderEvidenceList(incidentEvidence, "#incidentEvidencePreview", "remove-incident-evidence", saveIncidentDraft);}
 function renderIncidentReport(data){prepareStandardReport();const type=data.incidentType==="Otro"?`Otro: ${data.otherType}`:data.incidentType;const folio=incidentFolio(data);$("#printReport").innerHTML=`<div class="report-title"><div class="report-logo">GVC</div><div><b>GRAN VISIÓN CONSTRUCCIÓN</b><h1>REPORTE DE SEGURIDAD DE OBRA<br>ACCIDENTE / INCIDENTE</h1></div><div><b>Rev. 01</b><br>Folio: ${escapeHtml(folio)}</div></div>
@@ -431,20 +440,22 @@ function renderReport(data) {
 function allRecords() { try { return JSON.parse(localStorage.getItem(STORAGE_RECORDS)) || []; } catch { return []; } }
 function records() { const all=allRecords(),workId=localStorage.getItem("gvc-active-work-id");return workId?all.filter(item=>(item.workId||"legacy")===workId):all; }
 function repositoryRecords() { const all=window.GraviRepositories?.records?.list?.() || allRecords(),workId=localStorage.getItem("gvc-active-work-id");return workId?all.filter(item=>(item.workId||"legacy")===workId):all; }
-function finish(data) {
+async function finish(data) {
   const existedRemotely=allRecords().some(item=>item.id===data.id);
   data.workId = localStorage.getItem("gvc-active-work-id") || data.workId || "legacy";
-  const all = allRecords().filter(x => x.id !== data.id); all.unshift(data); localStorage.setItem(STORAGE_RECORDS, JSON.stringify(all));
+  const stored=await window.GraviIncidentStorage.saveRecord(data);if(!stored.local.ok)console.error("[GRAVI Registros] El historial ligero no pudo escribirse.",stored.local.error||stored.local.reason);
   const mutations=window.GraviSupabase?.entityMutations;
-  if(data.type==="incident")(existedRemotely?mutations?.updateIncident:mutations?.createIncident)?.(data);
+  let remoteResult=null;if(data.type==="incident")remoteResult=await (existedRemotely?mutations?.updateIncident:mutations?.createIncident)?.(stored.record);
   else (existedRemotely?mutations?.updateInspection:mutations?.createInspection)?.(data);
   if (data.type === "firstAid") localStorage.removeItem(STORAGE_FIRST_AID_DRAFT);
-  else if (data.type === "incident") localStorage.removeItem(STORAGE_INCIDENT_DRAFT);
+  else if (data.type === "incident") {if(navigator.onLine&&remoteResult&&!remoteResult.pending)await window.GraviIncidentStorage.removeDraft(STORAGE_INCIDENT_DRAFT,data.id);else await window.GraviIncidentStorage.saveDraft(STORAGE_INCIDENT_DRAFT,data,{status:"pending"});}
   else if (equipmentConfigs[data.type]) localStorage.removeItem(`gvc-${data.type}-draft-v1-${WORK_SCOPE}`);
   else localStorage.removeItem(STORAGE_DRAFT);
   window.dispatchEvent(new CustomEvent("gvc:record-saved", { detail: { id:data.id, type:data.type, workId:data.workId, date:data.date, createdAt:data.createdAt, evidenceCount:normalizeEvidenceList(data.evidence||[]).length } }));
+  return {record:data,remoteResult,pending:!navigator.onLine||Boolean(remoteResult?.pending)};
 }
 function prepareStandardReport() { window.systemDownloadData = null; $("#editButton").hidden = false; }
+async function resizeImage(file){const result=await window.GraviEvidenceManager.prepareImages([file],{maxFiles:1});if(!result.prepared.length)throw new Error(result.rejected[0]?.message||"No fue posible preparar la fotografía.");const item=result.prepared[0];await window.GraviOfflineEvidenceQueue.save({clientUuid:item.clientUuid,blob:item.blob,mimeType:item.mimeType,originalName:item.originalName,originalSize:item.originalSize,sizeBytes:item.sizeBytes,width:item.width,height:item.height,caption:"Fotografía de trabajador",recordType:"work_evidence",recordId:item.clientUuid,workId:localStorage.getItem("gvc-active-work-id")||"legacy",evidenceStage:"worker-photo",sourceModule:"worker-photo",sourceEntryId:item.clientUuid,status:"pending"});return `idb-evidence:${item.clientUuid}`;}
 function renderRecent() {
   const items = repositoryRecords().slice(0, 3); const el = $("#recentList");
   el.className = items.length ? "history-list" : "empty-state";
@@ -510,13 +521,12 @@ $("#incidentBack").onclick=()=>{saveIncidentDraft(true);showView("homeView");};$
 $$('[name="incidentType"]',incidentForm).forEach(radio=>radio.addEventListener("change",toggleOtherIncidentType));incidentForm.addEventListener("input",()=>{$("#incidentStatus").textContent="Cambios sin guardar";});
 incidentForm.onsubmit=event=>{event.preventDefault();if(!incidentForm.reportValidity())return;const data=collectIncidentData("Finalizada");currentRecord=data;finish(data);renderIncidentReport(data);showView("reportView");toast("Reporte diario finalizado correctamente.");};
 $("#incidentEvidenceInput").onchange=event=>addEvidenceFiles(event, incidentEvidence, 8, renderIncidentEvidence, saveIncidentDraft);
-function resizeImage(file,options={}){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>{const img=new Image();img.onload=()=>{const max=options.max||1200,scale=Math.min(1,max/img.width,max/img.height),c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);const ctx=c.getContext('2d');ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',options.quality??.78));};img.onerror=reject;img.src=reader.result;};reader.onerror=reject;reader.readAsDataURL(file);});}
 $("#editButton").onclick = () => {
   if (currentRecord?.type === "incident") { openIncidentReport(currentRecord); }
   else if (currentRecord?.type === "firstAid") { applyFirstAidData(currentRecord); showView("firstAidView"); }
   else if (equipmentConfigs[currentRecord?.type]) { openEquipmentInspection(currentRecord.type,currentRecord); }
   else { applyData(currentRecord); showStep(1); showView("formView"); }
-}; $("#printButton").onclick = async () => { window.dispatchEvent(new CustomEvent("gvc:pdf-generated", { detail: { recordId:currentRecord?.id||"", type:currentRecord?.type||"" } })); try { await window.GraviPrint.printCurrentDocument(); } catch (error) { toast(error.message); } };
+}; $("#printButton").onclick = async () => { const button=$("#printButton");button.disabled=true;button.textContent="Preparando evidencia…";try { await (window.GraviReportEvidenceReady||Promise.resolve());await window.GraviPrint.printCurrentDocument();window.dispatchEvent(new CustomEvent("gvc:pdf-generated", { detail: { recordId:currentRecord?.id||"", type:currentRecord?.type||"" } })); } catch (error) { console.error("[GRAVI Print:evidence]",error);toast("No fue posible preparar el reporte para impresión."); } finally {button.disabled=false;button.textContent="Imprimir / Guardar PDF";} };
 $("#downloadData").onclick = () => { const source=window.systemDownloadData||currentRecord;const blob=new Blob([JSON.stringify(source,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);const kind=source?.downloadName||(source?.type === "incident"?"reporte-seguridad":source?.type === "firstAid"?"botiquin":equipmentConfigs[source?.type]?source.type:"extintores");a.download=`${kind}-${source?.date||'registro'}.json`;a.click();URL.revokeObjectURL(a.href); };
 $("#historyButton").onclick = () => showView("historyView"); $("#historyBack").onclick = () => showView("homeView");
 prepareEvidenceInputs();

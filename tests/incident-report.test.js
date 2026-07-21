@@ -39,12 +39,14 @@ assert.match(wizard, /button\.textContent="Enviando…"/);
 assert.match(wizard, /button\.textContent="Enviar reporte"/);
 
 // Un nuevo registro no debe reutilizar el id de un expediente previamente abierto.
-assert.match(system, /q\("#incidentButton"\)\.onclick=\(\)=>\{currentRecord=null;incidentWizardRender63\(\);\}/);
+assert.match(system, /q\("#incidentButton"\)\.onclick=\(\)=>\{currentRecord=null;incidentWizardRender63\(\);installIncidentSubmit50\(\);\}/);
+assert.match(system, /dataset\.submittingV50/);
+assert.match(system, /await finish\(record\)/);
 
 // Coherencia de caché y carga de scripts.
-assert.match(sw, /gravi-sst-v2-shell-v49/);
-assert.match(sw, /system\.js\?v=2026-07-18-incident-submit-v49/);
-assert.match(bootstrap, /system\.js\?v=2026-07-18-incident-submit-v49/);
-assert.match(index, /bootstrap\.js\?v=2026-07-18-incident-submit-v49/);
+assert.match(sw, /gravi-sst-v2-shell-v51/);
+assert.match(sw, /system\.js\?v=2026-07-18-evidence-v51/);
+assert.match(bootstrap, /system\.js\?v=2026-07-18-evidence-v51/);
+assert.match(index, /bootstrap\.js\?v=2026-07-18-evidence-v51/);
 
-console.log("PASS incident-report-v49: validación visible, fecha/hora precargada, revisión coherente, envío protegido y caché coordinada verificados.");
+console.log("PASS incident-report-v50: validación visible, fecha/hora precargada, envío asíncrono protegido y caché coordinada verificados.");
