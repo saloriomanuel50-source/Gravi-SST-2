@@ -14,8 +14,8 @@ const supabase = read("src/supabase.js");
 const sw = read("service-worker.js");
 const pwa = read("src/pwa.js");
 
-const version = "2026-07-17-runtime-coherence-v48";
-const storageVersion = "2026-07-18-evidence-v51";
+const version = "2026-07-21-localstorage-v51";
+const storageVersion = "2026-07-21-localstorage-v51";
 for (const reference of [
   `window.GRAVI_BUILD_VERSION = "${version}"`,
   `./src/pwa.js?v=${storageVersion}`,
@@ -28,7 +28,7 @@ assert.ok(sw.includes(`./src/supabase.js?v=${version}`));
 assert.ok(sw.includes(`./src/bootstrap.js?v=${storageVersion}`));
 assert.ok(sw.includes(`./src/pwa.js?v=${storageVersion}`));
 
-assert.match(sw, /const CACHE_NAME = "gravi-sst-v2-shell-v51";/);
+assert.match(sw, /const CACHE_NAME = "gravi-sst-v2-shell-v51-localstorage";/);
 assert.match(sw, /keys\.filter\(key => key !== ACTIVE_CACHE_NAME\)/);
 assert.match(sw, /request\.mode === "navigate" \? new Request\(request, \{cache:"no-store"\}\)/);
 assert.match(sw, /event\.data\?\.type === "SKIP_WAITING"/);
@@ -48,7 +48,8 @@ assert.match(system, /gvc:data-hydrated/);
 assert.match(system, /cross-tab-storage/);
 
 const persistBlock = system.match(/function persistLocalData\([\s\S]*?\n\}/)?.[0] || "";
-assert.ok(persistBlock.includes("localStorage.setItem"));
+assert.ok(persistBlock.includes("enqueuePersist"));
+assert.ok(!persistBlock.includes("localStorage.setItem"));
 assert.ok(persistBlock.includes("gvc:local-data-updated"));
 const saveBlock = system.match(/function save\([\s\S]*?\n\}/)?.[0] || "";
 assert.ok(saveBlock.indexOf("persistLocalData") < saveBlock.indexOf("scheduleSystemSync"));

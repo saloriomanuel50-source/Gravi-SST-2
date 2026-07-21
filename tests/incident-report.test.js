@@ -45,8 +45,8 @@ assert.match(system, /await finish\(record\)/);
 
 // Coherencia de caché y carga de scripts.
 assert.match(sw, /gravi-sst-v2-shell-v51/);
-assert.match(sw, /system\.js\?v=2026-07-18-evidence-v51/);
-assert.match(bootstrap, /system\.js\?v=2026-07-18-evidence-v51/);
-assert.match(index, /bootstrap\.js\?v=2026-07-18-evidence-v51/);
+assert.match(sw, /system\.js\?v=2026-07-21-localstorage-v51/);
+assert.match(bootstrap, /system\.js\?v=2026-07-21-localstorage-v51/);
+assert.match(index, /bootstrap\.js\?v=2026-07-21-localstorage-v51/);
 
 console.log("PASS incident-report-v50: validación visible, fecha/hora precargada, envío asíncrono protegido y caché coordinada verificados.");

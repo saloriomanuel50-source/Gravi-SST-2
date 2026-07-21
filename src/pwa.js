@@ -1,7 +1,7 @@
 (function registerGraviServiceWorker(){
   "use strict";
   if (!("serviceWorker" in navigator)) return;
-  const VERSION="2026-07-18-evidence-v51";
+  const VERSION="2026-07-21-localstorage-v51";
   const RELOAD_KEY="gravi-sw-last-controller";
   const hadController=Boolean(navigator.serviceWorker.controller);
   let reloadStarted=false;
@@ -11,7 +11,7 @@
     const controllerId=navigator.serviceWorker.controller?.scriptURL||VERSION;
     if(sessionStorage.getItem(RELOAD_KEY)===controllerId)return;
     reloadStarted=true;
-    sessionStorage.setItem(RELOAD_KEY,controllerId);
+    try{sessionStorage.setItem(RELOAD_KEY,controllerId);}catch(error){console.warn("[GRAVI PWA v51] No fue posible registrar la recarga de sesión.",{errorType:error?.name||"sessionStorage"});}
     location.reload();
   });
 

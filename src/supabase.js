@@ -200,14 +200,14 @@
     if (!session) { localStorage.removeItem(SESSION_KEY); return; }
     const nextOwner=session.user?.id||"",previousOwner=localStorage.getItem(CACHE_OWNER_KEY)||"";
     if(nextOwner&&previousOwner&&nextOwner!==previousOwner)clearSensitiveCache();
-    if(nextOwner)localStorage.setItem(CACHE_OWNER_KEY,nextOwner);
+    if(nextOwner){const stored=global.GraviSystemStorage?.safeSetLocalStorage?.(CACHE_OWNER_KEY,nextOwner);if(!stored)try{localStorage.setItem(CACHE_OWNER_KEY,nextOwner);}catch(error){console.warn("[GraviSupabase:cache-owner]",{errorType:error?.name||"localStorage"});}}
     if (!session.expires_at && session.expires_in) session.expires_at = Math.floor(Date.now() / 1000) + Number(session.expires_in);
     currentSession = session;
     writeJson(SESSION_KEY, session);
   }
 
   function clearSensitiveCache() {
-    const fixed = [SYSTEM_CACHE_KEY,RECORDS_CACHE_KEY,PENDING_KEY,"gvc-active-work-id","gvc-work-context-v1"];
+    const fixed = [RECORDS_CACHE_KEY,PENDING_KEY,"gvc-active-work-id","gvc-work-context-v1"];
     fixed.forEach(key => localStorage.removeItem(key));
     const keys = [];
     for (let index = 0; index < localStorage.length; index++) keys.push(localStorage.key(index));
@@ -657,11 +657,22 @@
   }
 
   async function loadAuthenticatedData() {
+    const ownerKey=currentSession?.user?.id||currentProfile?.user_id||"anonymous";
+    let prepared={ok:false,payload:null,source:"empty"};
+    try{prepared=await global.GraviSystemStorage?.prepare?.(ownerKey)||prepared;}
+    catch(error){console.warn("[GraviSupabase:operational-prepare]",{errorType:error?.category||error?.name||"indexeddb"});}
+    const legacyCandidate=readJson(SYSTEM_CACHE_KEY, {}),localSystem=prepared.payload||(global.GraviSystemStorage?.isManifest?.(legacyCandidate)?{}:legacyCandidate),localRecords=readJson(RECORDS_CACHE_KEY, []);
+    try{await flushPending();}catch(error){console.warn("[GraviSupabase:pending-flush]",{errorType:error?.name||"pending"});}
+    let remote;
+    try{remote=await loadRemote();}
+    catch(error){
+      if(isPermissionSyncError(error)){clearSensitiveCache();emitStatus("error","Tu sesión ya no tiene acceso a estos datos.");emitDataHydrated48({source:"denied",errorType:"authorization"});return{configured:true,authenticated:true,source:"denied",error,errorType:"authorization"};}
+      emitStatus("error", "Supabase no disponible; usando caché local");
+      console.error("No fue posible obtener datos desde Supabase.", error);
+      emitDataHydrated48({source:prepared.payload?"indexeddb":"cache",errorType:"supabase"});
+      return {configured:true,authenticated:true,source:prepared.payload?"indexeddb":"cache",error,errorType:"supabase"};
+    }
     try {
-      await flushPending();
-      const remote = await loadRemote();
-      const localSystem = readJson(SYSTEM_CACHE_KEY, {});
-      const localRecords = readJson(RECORDS_CACHE_KEY, []);
       const remoteCount = remote.developments.length + remote.works.length + remote.contractors.length + remote.workers.length +
         remote.visitors.length + remote.attendance.length + remote.investigations.length + remote.histories.length + remote.records.length;
 
@@ -679,18 +690,24 @@
       }
 
       if (remoteCount > 0 || remote.state.length || remote.compliance.length) {
-        writeJson(SYSTEM_CACHE_KEY, hydrateSystem(localSystem, remote));
-        writeJson(RECORDS_CACHE_KEY, payloads(remote.records));
+        const hydrated=hydrateSystem(localSystem, remote);
+        const cacheResult=global.GraviSystemStorage?.persist?await global.GraviSystemStorage.persist(hydrated,{ownerKey,source:"supabase"}):{ok:false,errorType:"system-storage-unavailable"};
+        const operationalCached=Boolean(cacheResult.ok&&cacheResult.local?.ok);
+        if(!operationalCached)global.__graviOperationalHydration=clone(hydrated);
+        const recordsCached=writeJson(RECORDS_CACHE_KEY, payloads(remote.records));
+        if(!recordsCached)console.warn("[GraviSupabase:records-cache]",{errorType:"localStorage",records:remote.records.length});
+        emitStatus("synced",operationalCached&&recordsCached?"Datos cargados desde Supabase":"Datos cargados desde Supabase; no fue posible actualizar el caché local");
+      }else{
+        emitStatus("synced", "Datos cargados desde Supabase");
       }
-      emitStatus("synced", "Datos cargados desde Supabase");
       emitDataHydrated48({source:"supabase",remoteCount});
       return {configured:true,authenticated:true,source:"supabase"};
     } catch (error) {
-      emitStatus("error", "Supabase no disponible; usando caché local");
-      if(isPermissionSyncError(error)){clearSensitiveCache();emitStatus("error","Tu sesi\u00f3n ya no tiene acceso a estos datos.");return {configured:true,authenticated:true,source:"denied",error};}
-      console.error("No fue posible cargar datos desde Supabase.", error);
-      emitDataHydrated48({source:"cache",error:String(error?.message||error)});
-      return {configured:true,authenticated:true,source:"cache",error};
+      if(isPermissionSyncError(error)){clearSensitiveCache();emitStatus("error","Tu sesi\u00f3n ya no tiene acceso a estos datos.");return {configured:true,authenticated:true,source:"denied",error,errorType:"authorization"};}
+      emitStatus("error", "Los datos remotos se recibieron, pero no fue posible preparar la aplicación");
+      console.error("No fue posible hidratar los datos recibidos desde Supabase.", error);
+      emitDataHydrated48({source:prepared.payload?"indexeddb":"cache",errorType:"hydration"});
+      return {configured:true,authenticated:true,source:prepared.payload?"indexeddb":"cache",error,errorType:"hydration"};
     }
   }
 

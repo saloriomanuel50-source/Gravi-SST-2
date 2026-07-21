@@ -8,6 +8,7 @@
     "node": ">=18"
   },
   "scripts": {
+    "test": "node tests/system-storage-v51.test.js && node tests/attendance.test.js && node tests/sync-stability.test.js && node tests/runtime-coherence.test.js && node tests/incident-report.test.js && node tests/incident-storage-v50.test.js && node tests/incident-evidence-v51.test.js && node tests/evidence-manager.test.js && node tests/evidence-recovery.test.js",
     "dev": "node scripts/dev-server.js",
     "build": "node scripts/validate-build.js",
     "validate": "node scripts/validate-build.js",
@@ -24,6 +25,7 @@
     "test:attendance": "node tests/attendance.test.js",
     "test:stability": "node tests/sync-stability.test.js",
     "test:runtime": "node tests/runtime-coherence.test.js",
+    "test:storage": "node tests/system-storage-v51.test.js",
     "test:incidents": "node tests/incident-report.test.js && node tests/incident-storage-v50.test.js && node tests/incident-evidence-v51.test.js"
   },
   "dependencies": {},

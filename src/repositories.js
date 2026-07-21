@@ -37,7 +37,9 @@
   }
 
   function systemData() {
-    return Object.assign(clone(emptySystem), readJson(SYSTEM_KEY, {}));
+    const hydrated=global.GraviSystemStorage?.getHydratedPayload?.()||global.__graviOperationalHydration;
+    const local=hydrated||readJson(SYSTEM_KEY, {});
+    return Object.assign(clone(emptySystem),global.GraviSystemStorage?.isManifest?.(local)?{}:local);
   }
 
   function recordsData() {

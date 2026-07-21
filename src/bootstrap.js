@@ -1,7 +1,7 @@
 (async function startGraviApplication(){
   "use strict";
 
-  const scripts = ["./src/print/print-manager.js?v=2026-07-18-evidence-v51","./src/offline-evidence-queue.js?v=2026-07-18-evidence-v51","./src/evidence-manager.js?v=2026-07-18-evidence-v51","./src/evidence-resolver.js?v=2026-07-18-evidence-v51","./src/incident-storage.js?v=2026-07-18-evidence-v51","./src/app.js?v=2026-07-18-evidence-v51","./src/corporate-documents.js","./src/extensions.js?v=2","./src/executive-dashboard.js?v=2026-07-17-sidebar-navigation-v45","./src/system.js?v=2026-07-18-evidence-v51","./src/evidence-sync-coordinator.js?v=2026-07-18-evidence-v51","./src/legacy-capture-adapter.js?v=2026-07-15-capture-evidence-v42","./src/preventive-observations.js?v=2026-07-15-capture-evidence-v42","./src/evidence-gallery.js?v=2026-07-15-capture-evidence-v42","./src/signatures.js?v=2026-07-13-permissions-v38","./src/work-permits.js?v=2026-07-15-capture-evidence-v42","./src/evidence-relations.js?v=2026-07-15-capture-evidence-v42","./src/capture-center.js?v=2026-07-15-capture-evidence-v42"];
+  const scripts = ["./src/print/print-manager.js?v=2026-07-18-evidence-v51","./src/offline-evidence-queue.js?v=2026-07-21-localstorage-v51","./src/evidence-manager.js?v=2026-07-18-evidence-v51","./src/evidence-resolver.js?v=2026-07-18-evidence-v51","./src/incident-storage.js?v=2026-07-18-evidence-v51","./src/app.js?v=2026-07-18-evidence-v51","./src/corporate-documents.js","./src/extensions.js?v=2","./src/executive-dashboard.js?v=2026-07-17-sidebar-navigation-v45","./src/system.js?v=2026-07-21-localstorage-v51","./src/evidence-sync-coordinator.js?v=2026-07-18-evidence-v51","./src/legacy-capture-adapter.js?v=2026-07-15-capture-evidence-v42","./src/preventive-observations.js?v=2026-07-15-capture-evidence-v42","./src/evidence-gallery.js?v=2026-07-15-capture-evidence-v42","./src/signatures.js?v=2026-07-13-permissions-v38","./src/work-permits.js?v=2026-07-15-capture-evidence-v42","./src/evidence-relations.js?v=2026-07-15-capture-evidence-v42","./src/capture-center.js?v=2026-07-15-capture-evidence-v42"];
   const loginForm = document.querySelector("#loginForm");
   const authMessage = document.querySelector("#authMessage");
   const setPasswordForm = document.querySelector("#setPasswordForm");
@@ -105,6 +105,8 @@
   async function enterApplication() {
     const profile = window.GraviSupabase.getProfile();
     const user = window.GraviSupabase.getUser();
+    const storageReady=await window.GraviSystemStorage?.prepare?.(user?.id||profile?.user_id||"anonymous");
+    if(storageReady&&!storageReady.ok)console.warn("[GRAVI Bootstrap v51] Inicio con fallback de almacenamiento.",{errorType:storageReady.errorType||"indexeddb",source:storageReady.source||"empty"});
     document.body.classList.remove("auth-locked","auth-loading","auth-login","role-administrador","role-supervisor-sst","role-consulta");
     document.body.classList.add(roleClass(profile.role));
     document.querySelector("#currentUserName").textContent = profile.full_name || user.email || "Usuario";
@@ -484,7 +486,7 @@
     }
   } catch (error) {
     console.error("No fue posible preparar el acceso a GRAVI SST.", error);
-    showLogin("No fue posible conectar con el servicio de acceso.");
+    showLogin(error?.category==="authentication"?"No fue posible conectar con el servicio de acceso.":"No fue posible iniciar la aplicación. Los datos locales no fueron eliminados.");
   }
 })().catch(error => {
   console.error("No fue posible iniciar GRAVI SST.", error);

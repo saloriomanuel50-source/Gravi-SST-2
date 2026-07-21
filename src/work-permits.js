@@ -13,7 +13,7 @@ const FREQ=["Remota","Aislada","Ocasional","Recurrente","Frecuente"],SEV=["Menor
 const STAT={draft:"Borrador",pending_review:"Pendiente de revisión",authorized:"Autorizado",active:"Activo",rejected:"Rechazado",suspended:"Suspendido",cancelled:"Cancelado",expired:"Vencido",closed:"Cerrado"};
 const esc=v=>String(v??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}},write=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
-const system=()=>read("gvc-ops-system-v1",{works:[],contractors:[],workers:[]}),active=()=>localStorage.getItem("gvc-active-work-id")||"legacy";
+const system=()=>{const hydrated=global.GraviSystemStorage?.getHydratedPayload?.()||global.__graviOperationalHydration;if(hydrated)return hydrated;const local=read("gvc-ops-system-v1",{});return global.GraviSystemStorage?.isManifest?.(local)?{works:[],contractors:[],workers:[]}:local},active=()=>localStorage.getItem("gvc-active-work-id")||"legacy";
 const all=()=>read(KEY,[]),saveAll=x=>write(KEY,x),uid=()=>crypto.randomUUID(),can=k=>global.GraviSupabase?.canPermission?.(k)===true;
 function risk(f,s){return MATRIX[Math.max(0,FREQ.indexOf(f))][Math.max(0,SEV.indexOf(s))]}
 function shell(){const v=document.querySelector("#managementView"); if(!v)return null; v.hidden=false;document.querySelectorAll("main > section").forEach(x=>{if(x!==v)x.hidden=true});return {title:v.querySelector("#managementTitle"),sub:v.querySelector("#managementSubtitle"),actions:v.querySelector("#managementActions"),body:v.querySelector("#managementContent")}}

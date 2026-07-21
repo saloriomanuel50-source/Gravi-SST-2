@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_NAME = "gravi-sst-v2-shell-v51";
+const CACHE_NAME = "gravi-sst-v2-shell-v51-localstorage";
 const ACTIVE_CACHE_NAME = CACHE_NAME;
 const APP_SHELL = [
   "./",
@@ -22,15 +22,16 @@ const APP_SHELL = [
   "./src/styles/signatures.css?v=1",
   "./src/styles/print-documents.css?v=35",
   "./src/app.js?v=2026-07-18-evidence-v51",
-  "./src/supabase.js?v=2026-07-17-runtime-coherence-v48",
+  "./src/system-storage.js?v=2026-07-21-localstorage-v51",
+  "./src/supabase.js?v=2026-07-21-localstorage-v51",
   "./src/repositories.js?v=2026-07-15-capture-evidence-v42",
-  "./src/bootstrap.js?v=2026-07-18-evidence-v51",
+  "./src/bootstrap.js?v=2026-07-21-localstorage-v51",
   "./src/print/print-manager.js?v=2026-07-18-evidence-v51",
   "./src/corporate-documents.js?v=35",
   "./src/extensions.js?v=2026-07-07-hotfix-charset",
-  "./src/system.js?v=2026-07-18-evidence-v51",
+  "./src/system.js?v=2026-07-21-localstorage-v51",
   "./src/executive-dashboard.js?v=2026-07-17-sidebar-navigation-v45",
-  "./src/offline-evidence-queue.js?v=2026-07-18-evidence-v51",
+  "./src/offline-evidence-queue.js?v=2026-07-21-localstorage-v51",
   "./src/evidence-manager.js?v=2026-07-18-evidence-v51",
   "./src/evidence-resolver.js?v=2026-07-18-evidence-v51",
   "./src/incident-storage.js?v=2026-07-18-evidence-v51",
@@ -46,7 +47,7 @@ const APP_SHELL = [
   "./src/dynamic-formats-controller.js?v=2026-07-07-hotfix-charset",
   "./src/dynamic-formats-bootstrap.js?v=2026-07-07-hotfix-charset",
   "./src/dynamic-formats-ui.html?v=2026-07-07-hotfix-charset",
-  "./src/pwa.js?v=2026-07-18-evidence-v51",
+  "./src/pwa.js?v=2026-07-21-localstorage-v51",
   "./assets/gravi-sst-logo-dark.png",
   "./assets/gravi-sst-login-panel.png",
   "./assets/gravi-sst-splash.png",

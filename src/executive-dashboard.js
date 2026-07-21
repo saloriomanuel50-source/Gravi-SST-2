@@ -29,7 +29,7 @@
   function loadState(){
     state.loading=true;state.error=null;
     try{
-      const repo=global.GraviRepositories,system=read(SYSTEM_KEY,{}),records=repo?.records?.list?.()||read(RECORDS_KEY,[]),docs=repo?.documents?.list?.()||[],audit=repo?.audit?.list?.()||system.auditLog||[];
+      const repo=global.GraviRepositories,stored=global.GraviSystemStorage?.getHydratedPayload?.()||global.__graviOperationalHydration||read(SYSTEM_KEY,{}),system=global.GraviSystemStorage?.isManifest?.(stored)?{}:stored,records=repo?.records?.list?.()||read(RECORDS_KEY,[]),docs=repo?.documents?.list?.()||[],audit=repo?.audit?.list?.()||system.auditLog||[];
       state.developments=(repo?.developments?.list?.()||system.developments||[]).filter(shouldIncludeInExecutiveDashboard);
       state.works=(repo?.works?.list?.()||system.works||[]).filter(shouldIncludeInExecutiveDashboard);
       const allowed=new Set(state.works.map(item=>item.id));
