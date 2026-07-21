@@ -8,7 +8,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "node tests/system-storage-v51.test.js && node tests/attendance.test.js && node tests/sync-stability.test.js && node tests/runtime-coherence.test.js && node tests/incident-report.test.js && node tests/incident-storage-v50.test.js && node tests/incident-evidence-v51.test.js && node tests/evidence-manager.test.js && node tests/evidence-recovery.test.js",
+    "test": "node tests/system-storage-v51.test.js && node tests/attendance.test.js && node tests/sync-stability.test.js && node tests/runtime-coherence.test.js && node tests/incident-report.test.js && node tests/incident-form-runtime-v52.test.js && node tests/incident-storage-v50.test.js && node tests/incident-evidence-v51.test.js && node tests/evidence-manager.test.js && node tests/evidence-recovery.test.js",
     "dev": "node scripts/dev-server.js",
     "build": "node scripts/validate-build.js",
     "validate": "node scripts/validate-build.js",

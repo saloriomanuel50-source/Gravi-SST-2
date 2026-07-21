@@ -100,7 +100,23 @@ function migrateLegacy(){if(data.works.length)return;let old=[];try{old=JSON.par
 
 function init(){migrateLegacy();bindShell();ensureClosedWeeks();q("#attendanceButton")?.addEventListener("click",()=>openModule("attendance"));if(activeWork()){renderDashboard();displayView("homeView");}else{renderWorks();displayView("worksView");}bindIncidentInvestigation();}
 function bindShell(){q("#homeButton").onclick=()=>{renderWorks();displayView("worksView");};q("#activeWorkButton").onclick=()=>{renderWorks();displayView("worksView");};q("#newWorkButton").onclick=()=>q("#workForm").hidden=false;q("#cancelWorkButton").onclick=()=>q("#workForm").hidden=true;q("#workForm").onsubmit=e=>{e.preventDefault();const fd=new FormData(e.currentTarget),work={id:uid(),development:fd.get("development"),name:fd.get("name"),location:fd.get("location"),details:fd.get("details"),createdAt:new Date().toISOString()};data.works.push(work);save();setActive(work.id);};q("#managementBack").onclick=()=>{renderDashboard();displayView("homeView");};["#incidentButton","#extinguisherInspectionButton","#firstAidInspectionButton"].forEach(sel=>q(sel)?.addEventListener("click",()=>setTimeout(prefillWork,0)));}
-function prefillWork(){const w=activeWork();if(!w)return;if(q("#incidentForm")?.offsetParent){q("#incidentForm").elements.location.value||=w.location;}if(q("#inspectionForm")?.offsetParent){q("#inspectionForm").elements.project.value||=`${w.development} - ${w.name}`;q("#inspectionForm").elements.location.value||=w.location;}if(q("#firstAidForm")?.offsetParent)q("#firstAidForm").elements.location.value||=w.location;}
+function prefillWork(){
+  const w=activeWork();
+  if(!w)return;
+  const incidentForm=q("#incidentForm");
+  const inspectionForm=q("#inspectionForm");
+  const firstAidForm=q("#firstAidForm");
+  const incidentLocation=incidentForm?.elements?.location;
+  if(incidentForm?.offsetParent&&incidentLocation)incidentLocation.value||=w.location||"";
+  if(inspectionForm?.offsetParent){
+    const inspectionProject=inspectionForm.elements?.project;
+    const inspectionLocation=inspectionForm.elements?.location;
+    if(inspectionProject)inspectionProject.value||=`${w.development} - ${w.name}`;
+    if(inspectionLocation)inspectionLocation.value||=w.location||"";
+  }
+  const firstAidLocation=firstAidForm?.elements?.location;
+  if(firstAidForm?.offsetParent&&firstAidLocation)firstAidLocation.value||=w.location||"";
+}
 
 function renderWorks(){const grid=q("#worksGrid"),visibleWorks=typeof navigableWorks52==="function"?navigableWorks52():data.works;grid.innerHTML=visibleWorks.length?visibleWorks.map(w=>{const cs=data.contractors.filter(x=>x.workId===w.id&&x.status==="Activo").length,p=presentCount(w.id,today()),last=[...allDocuments(w.id)].sort((a,b)=>(b.date||"").localeCompare(a.date||""))[0];return `<article class="work-card"><p class="eyebrow">${esc(w.development)}</p><h2>${esc(w.name)}</h2><p>${esc(w.location)}</p><div class="work-card-stats"><span><b>${cs}</b>Contratistas activos</span><span><b>${p}</b>Presentes hoy</span></div><p>Último reporte: ${last?fmt(last.date):"Sin registros"}</p><button class="primary" data-select-work="${w.id}">Abrir obra</button></article>`;}).join(""):'<div class="empty-management">No hay obras registradas. Crea la primera para comenzar.</div>';qa("[data-select-work]",grid).forEach(b=>b.onclick=()=>setActive(b.dataset.selectWork));}
 function renderDashboard(){const w=activeWork();if(!w)return;q("#activeWorkButton").hidden=false;q("#activeWorkButton").textContent=`${w.development} · ${w.name}`;const hero=q("#homeView .hero");q("h1",hero).textContent=w.name;q(".eyebrow",hero).textContent=w.development;q("p:last-child",hero).textContent=`${w.location} · Selecciona una actividad o módulo administrativo.`;const modules=[
@@ -225,7 +241,13 @@ function bindExtendedWorkForm(){
   q("#historyButton").onclick=()=>activeWork()?openModule("histories"):(renderWorks(),displayView("worksView"));
   form.onsubmit=e=>{e.preventDefault();const f=new FormData(form),work={id:uid(),development:f.get("development"),name:f.get("name"),location:f.get("location"),details:f.get("details"),costCenter:f.get("costCenter")||"",workOrder:f.get("workOrder")||"",front:f.get("front")||"",partida:f.get("partida")||"",preparedBy:f.get("preparedBy")||"",superintendent:f.get("superintendent")||"",createdAt:new Date().toISOString()};data.works.push(work);save();setActive(work.id);};
 }
-function syncIncidentInvestigationButton(){const selected=incidentForm.querySelector('[name="accidentOccurred"]:checked');q("#createInvestigationButton").hidden=selected?.value!=="Sí";}
+function syncIncidentInvestigationButton(){
+  const incidentForm=q("#incidentForm");
+  const selected=incidentForm?.querySelector('[name="accidentOccurred"]:checked');
+  const createInvestigationButton=q("#createInvestigationButton");
+  if(!createInvestigationButton)return;
+  createInvestigationButton.hidden=selected?.value!=="Sí";
+}
 function bindIncidentWorkerReuse(){const field=incidentForm?.elements?.involvedNames?.closest("label");if(!field||q("#incidentWorker"))return;field.insertAdjacentHTML("beforebegin",`<label class="wide">Trabajador registrado o captura manual<select id="incidentWorker"><option value="">Captura manual / persona no registrada</option>${workers().filter(w=>w.status==="Activo").map(w=>`<option value="${w.id}">${esc(w.name)} · ${esc(contractorName(w.contractorId))}</option>`).join("")}</select></label>`);q("#incidentWorker").addEventListener("change",e=>{const w=data.workers.find(x=>x.id===e.target.value);if(!w)return;incidentForm.elements.involvedNames.value=w.name;incidentForm.elements.positions.value=w.position;incidentForm.elements.contractor.value=contractorName(w.contractorId);incidentForm.elements.workerName.value=w.name;});q("#incidentButton")?.addEventListener("click",()=>setTimeout(syncIncidentInvestigationButton,0));q("#editButton")?.addEventListener("click",()=>setTimeout(syncIncidentInvestigationButton,0));syncIncidentInvestigationButton();}
 function dashboardMetrics(){
   const recs=appRecords(),daily=recs.filter(x=>x.type==="incident"),inspections=recs.filter(x=>x.type!=="incident"),accidents=investigations().length;
